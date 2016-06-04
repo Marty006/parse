@@ -57,8 +57,8 @@ const api = new ParseServer({
 
 const app = express();
 
-app.set('view engine', 'ejs');
-app.set('views', 'views');
+// app.set('view engine', 'ejs');
+// app.set('views', 'views');
 
 // Serve the Parse API on the /parse URL prefix
 const mountPath = process.env.PARSE_MOUNT || '/parse';
