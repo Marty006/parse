@@ -1,5 +1,5 @@
 {
-  "name": "Parse Server Example",
+  "name": "ParseServer",
   "description": "An example Parse API server using the parse-server module",
   "repository": "https://github.com/ParsePlatform/parse-server-example",
   "logo": "https://avatars0.githubusercontent.com/u/1294580?v=3&s=200",
