@@ -1,0 +1,31 @@
+{
+  /**
+   * Application configuration section
+   * http://pm2.keymetrics.io/docs/usage/application-declaration/
+   */
+  "apps": [
+    // First application
+    {
+      "name": "parse-server",
+      "script": "index.js",
+      "watch": true,
+      "merge_logs": true,
+      "env": {
+        // DEFINES
+        "MONGOLAB_URI": "heroku config:set MONGOLAB_URI=mongodb://photouser:db3123123gram@ds015403.mlab.com:15403/photogram2-db",
+        "APP_NAME": "Photogram",
+        "APP_ID": "myAppId",
+        "MASTER_KEY": "myMasterKey",
+        "MASTER_REST_KEY": "MPhotogramMasterKey",
+        // S3
+        "AWS_ACCESS_KEY_ID": "AKIAJ2PRIH7MX5SKEDNQ",
+        "AWS_SECRET_ACCESS_KEY": "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",
+        "BUCKET_NAME": "nearme-s3",
+        //MAILGUN EMAIL
+        "MAILGUN_API_KEY": "key-3a05e956706a4bd579982460b96cf43a",
+        // ""MAILGUN_DOMAIN: "",
+        // "MAILGUN_FROM_ADDRESS: ""
+      }
+    }
+  ]
+}
