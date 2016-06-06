@@ -25,8 +25,8 @@ Parse.Cloud.define('isGalleryLiked', Gallery.isGalleryLiked);
 Parse.Cloud.define('likeGallery', Gallery.likeGallery);
 
 //Category
-Parse.Cloud.beforeSave('Category', Category.beforeSave);
+Parse.Cloud.beforeSave('GalleryCategory', Category.beforeSave);
 
 // Comment
-Parse.Cloud.beforeSave('Comment', Comment.beforeSave);
-Parse.Cloud.afterSave('Comment', Comment.afterSave);
+Parse.Cloud.beforeSave('GalleryComment', Comment.beforeSave);
+Parse.Cloud.afterSave('GalleryComment', Comment.afterSave);
