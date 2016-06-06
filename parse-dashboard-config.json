@@ -1,0 +1,12 @@
+{
+  "apps": [
+    {
+      "serverURL": "http://localhost:1337/parse",
+      "appName": "Photogram",
+      "appId": "myAppId",
+      "masterKey": "myMasterKey",
+      "iconName": "MyAppIcon.png"
+    }
+  ],
+  "iconsFolder": "public/assets/images"
+}

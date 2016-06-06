@@ -1,11 +1,12 @@
 'use strict';
-const express     = require('express');
-const ParseServer = require('parse-server').ParseServer;
-const S3Adapter   = require('parse-server').S3Adapter;
+const express        = require('express');
+const ParseServer    = require('parse-server').ParseServer;
+const S3Adapter      = require('parse-server').S3Adapter;
 const bodyParser     = require('body-parser');
 const cookieParser   = require('cookie-parser');
 const methodOverride = require('method-override');
 const cookieSession  = require('cookie-session');
+const ParseDashboard = require('parse-dashboard');
 const path           = require('path');
 
 // Parse configuration
@@ -26,6 +27,13 @@ const accessKeyId     = process.env.AWS_ACCESS_KEY_ID || 'YOUR_AWS_ACCESS_KEY_ID
 const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || 'YOUR_AWS_SECRET_ACCESS_KEY';
 const bucketName      = process.env.BUCKET_NAME || 'YOUR_AWS_BUCKET_NAME';
 
+// Push OneSignal
+const OneSignalPushAdapter = require('parse-server-onesignal-push-adapter');
+
+var oneSignalPushAdapter = new OneSignalPushAdapter({
+    oneSignalAppId: process.env.ONE_SIGNAL_APP_ID || "your-one-signal-app-id",
+    oneSignalApiKey: process.env.ONE_SIGNAL_REST_API_KEY || "your-one-signal-api-key"
+});
 if (!databaseUri) {
     console.log('DATABASE_URI not specified, falling back to localhost.');
 }
@@ -54,9 +62,34 @@ const api = new ParseServer({
         bucketName,
         {directAccess: true}
     ),
+    push: {
+        adapter: oneSignalPushAdapter
+    },
+});
+
+var dashboard = new ParseDashboard({
+    "apps": [
+        {
+            "serverURL": serverUrl,
+            "appId": appId,
+            "masterKey": masterKey,
+            "appName": appName,
+            "iconName": "icon.png"
+        }
+    ],
+    "iconsFolder": "public/assets/images"
 });
 
 const app = express();
+
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: false }))
+
+// parse application/json
+app.use(bodyParser.json())
+
+// make the Parse Dashboard available at /dashboard
+app.use('/dashboard', dashboard);
 
 // Serve static assets from the /public folder
 app.use('/public', express.static(path.join(__dirname, '/public')));
@@ -83,115 +116,6 @@ app.use(function (req, res, next) {
     next();
 });
 
-var isNotInstalled = function (req, res, next) {
-
-    var query = new Parse.Query(Parse.Role);
-    query.equalTo('name', 'Admin');
-    query.first()
-         .then(adminRole=> {
-
-             if (!adminRole) {
-                 return Parse.Promise.error({
-                     message: 'Admin Role not found',
-                     code: 5000
-                 });
-             }
-
-             let userRelation = adminRole.relation('users');
-             return userRelation.query().count({useMasterKey: true});
-         })
-         .then(count=> {
-             if (count === 0) {
-                 next();
-             } else {
-                 req.session = null;
-                 res.redirect('/login');
-             }
-         }, error=> {
-             if (error.code === 5000) {
-                 next();
-             } else {
-                 req.session = null;
-                 res.redirect('/login');
-             }
-         })
-}
-
-var urlencodedParser = bodyParser.urlencoded({extended: false});
-
-
-app.post('/install', [urlencodedParser, isNotInstalled], (req, res) => {
-
-    let name                 = req.body.name.trim();
-    let username             = req.body.username.toLowerCase().trim();
-    let password             = req.body.password.trim();
-    let passwordConfirmation = req.body.passwordConfirmation.trim();
-
-    if (!name) {
-        return res.render('install', {
-            flash: 'Name is required',
-            input: req.body
-        });
-    }
-
-    if (!username) {
-        return res.render('install', {
-            flash: 'Email is required',
-            input: req.body
-        });
-    }
-
-    if (password !== passwordConfirmation) {
-        return res.render('install', {
-            flash: "Password doesn't match",
-            input: req.body
-        });
-    }
-
-    if (password.length < 6) {
-        return res.render('install', {
-            flash: 'Password should be at least 6 characters',
-            input: req.body
-        });
-    }
-
-    var roles = [];
-
-    let roleACL = new Parse.ACL();
-    roleACL.setPublicReadAccess(true);
-
-    var role = new Parse.Role('Admin', roleACL);
-    roles.push(role);
-    var role = new Parse.Role('User', roleACL);
-    roles.push(role);
-
-    let user = new Parse.User();
-    user.set('name', name);
-    user.set('username', username);
-    user.set('email', username);
-    user.set('password', password);
-    user.set('roleName', 'Admin');
-    user.set('photoThumb', undefined);
-
-    let query = new Parse.Query(Parse.Role);
-
-    query.find()
-         .then(objRoles=>Parse.Object.destroyAll(objRoles, {useMasterKey: true}))
-         .then(()=>Parse.Object.saveAll(roles))
-         .then(()=>user.signUp())
-         .then(objUser=> {
-             objUser.setACL(new Parse.ACL(objUser));
-             objUser.save(null, {useMasterKey: true});
-             req.session.user  = objUser;
-             req.session.token = objUser.getSessionToken();
-             res.redirect('/dashboard/places');
-         }, error=> {
-             res.render('install', {
-                 flash: error.message,
-                 input: req.body
-             });
-         });
-});
 
 // Parse Server plays nicely with the rest of your web routes
 app.get('/', function (req, res) {
