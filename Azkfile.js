@@ -35,8 +35,9 @@ systems({
             NODE_ENV: "dev",
             PORT: "3000",
             DOMAIN: "#{system.name}.#{azk.default_domain}",
+            SERVER_URL: "#{system.name}.#{azk.default_domain}/parse",
             // DEFINES
-            MONGOLAB_URI: 'heroku config:set MONGOLAB_URI=mongodb://photouser:db3123123gram@ds015403.mlab.com:15403/photogram2-db',
+            MONGOLAB_URI: 'mongodb://photouser:db3123123gram@ds015403.mlab.com:15403/photogram2-db',
             APP_NAME: 'Photogram',
             APP_ID: 'myAppId',
             MASTER_KEY: 'myMasterKey',
