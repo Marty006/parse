@@ -11,7 +11,7 @@ const path           = require('path');
 
 // Parse configuration
 const databaseUri = process.env.DATABASE_URI || process.env.MONGOLAB_URI;
-const serverUrl   = process.env.SERVER_URL || 'https://localhost:1337/parse';
+const serverUrl   = process.env.SERVER_URL || 'http://localhost:1337/parse';
 const appId       = process.env.APP_ID || 'myAppId';
 const masterKey   = process.env.MASTER_KEY || 'myMasterKey';
 const restApiKey  = process.env.MASTER_REST_KEY || 'myRestApiKey';
@@ -68,28 +68,35 @@ const api = new ParseServer({
 });
 
 var dashboard = new ParseDashboard({
-    "apps": [
+    apps: [
         {
-            "serverURL": serverUrl,
-            "appId": appId,
-            "masterKey": masterKey,
-            "appName": appName,
-            "iconName": "icon.png"
+            appName: appName,
+            serverURL: serverUrl,
+            appId: appId,
+            masterKey: masterKey,
+            iconName: 'icon.png'
+        },
+        {
+            appName: 'Photogram Production',
+            serverURL: 'https://photogramserver.herokuapp.com/parse',
+            appId: 'myAppId',
+            masterKey: 'PhotogramKey123',
+            iconName: 'icon.png'
         }
     ],
-    "users": [
+    users: [
         {
-            "user":"admin", // Used to log in to your Parse Dashboard
-            "pass":"photogram123"
+            user: 'admin', // Used to log in to your Parse Dashboard
+            pass: 'photogram123'
         }
     ],
-    "iconsFolder": "public/assets/images"
-});
+    iconsFolder: 'public/assets/images'
+}, true);
 
 const app = express();
 
 // parse application/x-www-form-urlencoded
-app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.urlencoded({extended: false}))
 
 // parse application/json
 app.use(bodyParser.json())
