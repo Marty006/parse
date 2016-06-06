@@ -28,3 +28,9 @@ node_modules
 
 # Emacs
 *~
+.azk/Azkfile.js/72b697160b8c47c6f60ca04b3ae5247a
+.elasticbeanstalk/config.yml
+.idea/jsLibraryMappings.xml
+.idea/server.iml
+.idea/watcherTasks.xml
+.idea/libraries/server_node_modules.xml
