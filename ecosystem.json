@@ -12,7 +12,7 @@
       "merge_logs": true,
       "env": {
         // DEFINES
-        "MONGOLAB_URI": "heroku config:set MONGOLAB_URI=mongodb://photouser:db3123123gram@ds015403.mlab.com:15403/photogram2-db",
+        "MONGOLAB_URI": "mongodb://photouser:db3123123gram@ds015403.mlab.com:15403/photogram2-db",
         "APP_NAME": "Photogram",
         "APP_ID": "myAppId",
         "MASTER_KEY": "myMasterKey",
@@ -23,8 +23,11 @@
         "BUCKET_NAME": "nearme-s3",
         //MAILGUN EMAIL
         "MAILGUN_API_KEY": "key-3a05e956706a4bd579982460b96cf43a",
-        // ""MAILGUN_DOMAIN: "",
-        // "MAILGUN_FROM_ADDRESS: ""
+        "MAILGUN_DOMAIN": "",
+        "MAILGUN_FROM_ADDRESS": "",
+        // ONE SIGNAL PUSH
+        "ONE_SIGNAL_APP_ID": "d13d00d0-013f-406f-9811-66ce0737d7bc",
+        "ONE_SIGNAL_REST_API_KEY": "ZjQxOTEyMDQtN2QwOC00Nzg3LTgxZjctYmEwNjdhN2QwYWVl"
       }
     }
   ]
