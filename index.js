@@ -77,6 +77,12 @@ var dashboard = new ParseDashboard({
             "iconName": "icon.png"
         }
     ],
+    "users": [
+        {
+            "user":"admin", // Used to log in to your Parse Dashboard
+            "pass":"photogram123"
+        }
+    ],
     "iconsFolder": "public/assets/images"
 });
 
