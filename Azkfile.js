@@ -47,8 +47,11 @@ systems({
             BUCKET_NAME: 'nearme-s3',
             //MAILGUN EMAIL
             MAILGUN_API_KEY: 'key-3a05e956706a4bd579982460b96cf43a',
-            // MAILGUN_DOMAIN: '',
-            // MAILGUN_FROM_ADDRESS: ''
+            MAILGUN_DOMAIN: '',
+            MAILGUN_FROM_ADDRESS: '',
+            // ONE SIGNAL PUSH
+            ONE_SIGNAL_APP_ID: "",
+            ONE_SIGNAL_API_KEY: "",
         },
     },
 
@@ -60,22 +63,22 @@ systems({
         // Mounts folders to assigned paths
         mounts: {
             // equivalent persistent_folders
-            '/ngrok/log' : path("./log"),
+            '/ngrok/log': path("./log"),
         },
         scalable: {"default": 1},
         // do not expect application response
         wait: false,
-        http      : {
-            domains: [ "#{manifest.dir}-#{system.name}.#{azk.default_domain}" ],
+        http: {
+            domains: ["#{manifest.dir}-#{system.name}.#{azk.default_domain}"],
         },
-        ports     : {
-            http : "4040"
+        ports: {
+            http: "4040"
         },
-        envs      : {
+        envs: {
             // NGROK_SUBDOMAIN : "parse-server",
-            NGROK_AUTH      : "6FVyB2mzY3AtDYQo8HrNp_3HLabkpw6nBb9P7aQrnCd",
-            NGROK_LOG       : "/ngrok/log/ngrok.log",
-            NGROK_CONFIG    : "/ngrok/ngrok.yml",
+            NGROK_AUTH: "6FVyB2mzY3AtDYQo8HrNp_3HLabkpw6nBb9P7aQrnCd",
+            NGROK_LOG: "/ngrok/log/ngrok.log",
+            NGROK_CONFIG: "/ngrok/ngrok.yml",
         }
     }
     // mongodb: {
