@@ -21,6 +21,7 @@ Parse.Cloud.define('saveFacebookPicture', User.saveFacebookPicture);
 
 // Gallery
 Parse.Cloud.beforeSave('Gallery', Gallery.beforeSave);
+Parse.Cloud.define('feed', Gallery.feed);
 Parse.Cloud.define('isGalleryLiked', Gallery.isGalleryLiked);
 Parse.Cloud.define('likeGallery', Gallery.likeGallery);
 
