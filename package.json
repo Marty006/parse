@@ -1,11 +1,11 @@
 {
-  "name": "ParseServer",
+  "name": "PhotogramServer",
   "version": "2.0.0",
   "description": "",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ParsePlatform/parse-server-example"
+    "url": "https://github.com/photogram/server"
   },
   "license": "MIT",
   "dependencies": {
@@ -15,12 +15,14 @@
     "express": "~4.13.x",
     "jimp": "^0.2.21",
     "kerberos": "~0.0.x",
+    "lodash": "^4.13.1",
     "method-override": "^2.3.5",
     "parse": "~1.8.5",
     "parse-dashboard": "^1.0.13",
     "parse-server": "~2.2.11",
     "parse-server-onesignal-push-adapter": "^1.0.0",
-    "parse-server-simple-mailgun-adapter": "^1.0.0"
+    "parse-server-simple-mailgun-adapter": "^1.0.0",
+    "socket.io": "^1.4.6"
   },
   "scripts": {
     "start": "node index.js"

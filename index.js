@@ -10,6 +10,7 @@ const ParseDashboard = require('parse-dashboard');
 const path           = require('path');
 
 // Parse configuration
+const port        = process.env.PORT || 1337;
 const databaseUri = process.env.DATABASE_URI || process.env.MONGOLAB_URI;
 const serverUrl   = process.env.SERVER_URL || 'http://localhost:1337/parse';
 const appId       = process.env.APP_ID || 'myAppId';
@@ -93,7 +94,22 @@ var dashboard = new ParseDashboard({
     iconsFolder: 'public/assets/images'
 }, true);
 
-const app = express();
+var app  = require('express')();
+var http = require('http').Server(app);
+var io   = require('socket.io')(http);
+
+io.on('connection', function (socket) {
+        console.log('User connect');
+        io.emit('chat message', '[name] came online');
+        socket.on('chat message', function (msg) {
+            io.emit('chat message', msg);
+        });
+        socket.on('disconnect', function () {
+            io.emit('chat message', '[name] went offline');
+        });
+    }
+);
+
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({extended: false}))
@@ -136,7 +152,10 @@ app.get('/', function (req, res) {
 });
 
 
-var port = process.env.PORT || 1337;
-app.listen(port, function () {
-    console.log('Parse server running on port ' + port + '.');
+// app.listen(port, function () {
+//     console.log('Parse server running on port ' + port + '.');
+// });
+
+http.listen(port, function () {
+    console.log('listening on: ' + serverUrl);
 });
