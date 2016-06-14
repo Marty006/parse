@@ -74,6 +74,7 @@ function start(req, res, next) {
     user.set('email', username);
     user.set('password', password);
     user.set('roleName', 'Admin');
+    user.set('gender', 'man');
     user.set('photoThumb', undefined);
 
     new Parse.Query(Parse.Role)

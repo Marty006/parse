@@ -13,7 +13,7 @@
       "env": {
         "SERVER_URL": "http://photogramapp.com:1337/parse",
         // DEFINES
-        "MONGOLAB_URI": "mongodb://photogram:ehSadIQs2J@ds021689.mlab.com:21689/photogram-db",
+        "MONGOLAB_URI": "mongodb://photogram:ehSadIQs2J@ds015403.mlab.com:15403/photogram2-db",
         "APP_NAME": "Photogram",
         "APP_ID": "myAppId",
         "MASTER_KEY": "myMasterKey",
