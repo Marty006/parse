@@ -1,0 +1,30 @@
+[
+  {
+    "key": "imageSaveAlbum",
+    "value": "true"
+  },
+  {
+    "key": "imageWidth",
+    "value": "640"
+  },
+  {
+    "key": "imageHeight",
+    "value": "640"
+  },
+  {
+    "key": "thumbWidth",
+    "value": "640"
+  },
+  {
+    "key": "thumbHeight",
+    "value": "640"
+  },
+  {
+    "key": "imageEdit",
+    "value": "true"
+  },
+  {
+    "key": "imageQuality",
+    "value": "90"
+  }
+]

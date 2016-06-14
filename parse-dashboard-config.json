@@ -5,7 +5,7 @@
       "appName": "Photogram",
       "appId": "myAppId",
       "masterKey": "myMasterKey",
-      "iconName": "MyAppIcon.png"
+      "iconName": "icon.png"
     }
   ],
   "iconsFolder": "public/assets/images"

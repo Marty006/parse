@@ -1,10 +1,11 @@
 'use strict';
-module.exports = {
-    status: status ,
-    start: start
+const GallerySetting = require('../class/GallerySetting');
+module.exports       = {
+    status: status,
+    start : start
 };
 
-function status (req, res, next)=> {
+function status(req, res, next) {
     console.log(req.params);
     var query = new Parse.Query(Parse.Role);
     query.equalTo('name', 'Admin');
@@ -35,11 +36,11 @@ function status (req, res, next)=> {
          });
 }
 
-function start (req, res, next) => {
-    let name                 = req.params.name.trim();
-    let username             = req.params.username.toLowerCase().trim();
-    let password             = req.params.password.trim();
-    let passwordConfirmation = req.params.passwordConfirmation.trim();
+function start(req, res, next) {
+    let name                 = req.params.name ? req.params.name.trim() : null;
+    let username             = req.params.username ? req.params.username.toLowerCase().trim() : null;
+    let password             = req.params.password ? req.params.password.trim() : 'null';
+    let passwordConfirmation = req.params.passwordConfirmation ? req.params.passwordConfirmation.trim() : '';
 
     if (!name) {
         return res.error('Name is required');
@@ -50,7 +51,7 @@ function start (req, res, next) => {
     }
 
     if (password !== passwordConfirmation) {
-        return res.error( "Password doesn't match");
+        return res.error("Password doesn't match");
     }
 
     if (password.length < 6) {
@@ -75,23 +76,23 @@ function start (req, res, next) => {
     user.set('roleName', 'Admin');
     user.set('photoThumb', undefined);
 
-    let query = new Parse.Query(Parse.Role);
+    new Parse.Query(Parse.Role)
+        .find()
+        .then(objRoles => Parse.Object.destroyAll(objRoles, {useMasterKey: true}))
+        .then(() => Parse.Object.saveAll(roles))
+        .then(() => user.signUp())
+        .then(objUser=> {
+            objUser.setACL(new Parse.ACL(objUser));
+            objUser.save(null, {useMasterKey: true});
 
-    query.find()
-         .then(objRoles=>Parse.Object.destroyAll(objRoles, {useMasterKey: true}))
-         .then(()=>Parse.Object.saveAll(roles))
-         .then(()=>user.signUp())
-         .then(objUser=> {
-             objUser.setACL(new Parse.ACL(objUser));
-             objUser.save(null, {useMasterKey: true});
-             req.session.user  = objUser;
-             req.session.token = objUser.getSessionToken();
-             res.success({
-                 user: objUser,
-                 token: objUser.getSessionToken()
-             });
-         }, error=> {
-             res.error(error.message);
-         });
+            // Create Settings
+            GallerySetting
+                .start(new Parse.ACL(objUser))
+                .then((data)=> {
+                    console.log('Settings create', data);
+                    res.success(objUser.id);
+                })
+
+        }, error=> res.error(error.message));
 
 }

@@ -21,8 +21,7 @@
     "parse-dashboard": "^1.0.13",
     "parse-server": "~2.2.11",
     "parse-server-onesignal-push-adapter": "^1.0.0",
-    "parse-server-simple-mailgun-adapter": "^1.0.0",
-    "socket.io": "^1.4.6"
+    "parse-server-simple-mailgun-adapter": "^1.0.0"
   },
   "scripts": {
     "start": "node index.js"
