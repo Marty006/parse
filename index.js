@@ -1,5 +1,6 @@
 'use strict';
 const express              = require('express');
+const cors                 = require('cors')
 const bodyParser           = require('body-parser');
 const cookieParser         = require('cookie-parser');
 const methodOverride       = require('method-override');
@@ -96,7 +97,7 @@ const dashboard = new ParseDashboard({
 
 const app = require('express')();
 
-
+app.use(cors);
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({extended: false}))
 

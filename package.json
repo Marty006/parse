@@ -12,6 +12,7 @@
     "body-parser": "^1.15.0",
     "cookie-parser": "^1.4.1",
     "cookie-session": "^2.0.0-alpha.1",
+    "cors": "^2.7.1",
     "express": "~4.13.x",
     "jimp": "^0.2.21",
     "kerberos": "~0.0.x",
