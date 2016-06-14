@@ -1,7 +1,7 @@
 'use strict';
 const _               = require('lodash');
 const Image           = require('./../helpers/image');
-const User            = require('./../class/user');
+const User            = require('./../class/User');
 const GalleryActivity = require('./../class/GalleryActivity');
 const ParseObject     = Parse.Object.extend('Gallery');
 

@@ -11,7 +11,7 @@
       "watch": true,
       "merge_logs": true,
       "env": {
-//        "SERVER_URL": "http://localhost:1337/parse",
+        "SERVER_URL": "http://photogramapp.com:1337/parse",
         // DEFINES
         "MONGOLAB_URI": "mongodb://photogram:ehSadIQs2J@ds021689.mlab.com:21689/photogram-db",
         "APP_NAME": "Photogram",
