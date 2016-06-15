@@ -92,12 +92,14 @@ function afterSave(req, res) {
     var user           = req.object;
     var userRequesting = req.user;
 
-    var queryUserData = new Parse.Query('UserData');
-    queryUserData.equalTo('user', user);
-    queryUserData.first().then(function (userData) {
+    new Parse.Query('UserData')
+        .equalTo('user', user)
+        .first().then(userData => {
 
         if (userData) {
             userData.set('name', user.get('name'));
+            userData.set('status', user.get('status'));
+            userData.set('username', user.get('username'));
             userData.set('photo', user.get('photo'));
         } else {
 
@@ -106,10 +108,12 @@ function afterSave(req, res) {
             roleACL.setWriteAccess(user, true);
 
             userData = new Parse.Object('UserData', {
-                user : user,
-                ACL  : roleACL,
-                name : user.get('name'),
-                photo: user.get('photo'),
+                user    : user,
+                ACL     : roleACL,
+                name    : user.get('name'),
+                username: user.get('username'),
+                status  : user.get('status'),
+                photo   : user.get('photo'),
             });
         }
         userData.save(null, {useMasterKey: true});
@@ -122,10 +126,10 @@ function afterSave(req, res) {
 
     if (!user.existed()) {
 
-        var query = new Parse.Query(Parse.Role);
-        query.equalTo('name', 'Admin');
-        query.equalTo('users', userRequesting);
-        query.first().then(function (isAdmin) {
+        new Parse.Query(Parse.Role)
+            .equalTo('name', 'Admin')
+            .equalTo('users', userRequesting)
+            .first().then(function (isAdmin) {
 
             //if (!isAdmin && user.get('roleName') === 'Admin') {
             //    return Parse.Promise.error({
@@ -138,12 +142,10 @@ function afterSave(req, res) {
             let innerQuery = new Parse.Query(Parse.Role);
             innerQuery.equalTo('name', roleName);
             return innerQuery.first();
-        }).then(function (role) {
-
+        }).then(role=> {
             if (!role) {
                 return Parse.Promise.error('Role not found');
             }
-
             role.getUsers().add(user);
             return role.save();
         }).then(()=>console.log(success), error=>console.error('Got an error ' + error.code + ' : ' + error.message));
@@ -221,26 +223,31 @@ function updateUser(req, res, next) {
     var data = req.params;
     var user = req.user;
 
-    var query = new Parse.Query(Parse.Role);
-    query.equalTo('name', 'Admin');
-    query.equalTo('users', user);
-    query.first().then(function (adminRole) {
+    new Parse.Query(Parse.Role)
+        .equalTo('name', 'Admin')
+        .equalTo('users', user)
+        .first().then(function (adminRole) {
 
-        //if (!adminRole) {
-        //    return res.error('Not Authorized');
-        //}
+        if (!adminRole) {
+            return res.error('Not Authorized');
+        }
 
-        var query = new Parse.Query(Parse.User);
-        query.equalTo('objectId', data.id);
-        return query.first({useMasterKey: true});
-    }).then(function (objUser) {
+        return new Parse.Query(Parse.User)
+            .equalTo('objectId', data.id)
+            .first({useMasterKey: true});
+    }).then(objUser => {
 
         objUser.set('name', data.name);
         objUser.set('username', data.email);
+        objUser.set('status', data.status);
+        objUser.set('gender', data.gender);
         objUser.set('email', data.email);
-        objUser.set('photo', data.photo);
 
-        if (!data.password) {
+        if(data.photo) {
+            objUser.set('photo', data.photo);
+        }
+
+        if (data.password) {
             objUser.set('password', data.password);
         }
 

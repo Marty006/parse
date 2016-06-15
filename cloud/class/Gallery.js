@@ -281,18 +281,26 @@ function likeGallery(req, res, next) {
     const user      = req.user;
     const galleryId = req.params.galleryId;
 
+
     if (!user) {
         return res.error('Not Authorized');
     }
+    console.log('Like Gallery', user, galleryId);
 
     var objGallery;
     var response = {action: null};
 
     new Parse.Query('Gallery')
         .get(galleryId)
-        .then(gallery => Parse.Query('Gallery').equalTo('likes', user).equalTo('objectId', gallery).find())
+        .then(gallery => {
+            return new Parse.Query('Gallery')
+                .equalTo('likes', user)
+                .equalTo('objectId', gallery)
+                .find();
+        })
         .then(result => {
             let relation = objGallery.relation('likes');
+
             if (result.length > 0) {
                 objGallery.increment('likeCount', -1);
                 relation.remove(user);
