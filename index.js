@@ -1,9 +1,5 @@
 'use strict';
 const express              = require('express');
-const bodyParser           = require('body-parser');
-const cookieParser         = require('cookie-parser');
-const methodOverride       = require('method-override');
-const cookieSession        = require('cookie-session');
 const ParseServer          = require('parse-server').ParseServer;
 const S3Adapter            = require('parse-server').S3Adapter;
 const ParseDashboard       = require('parse-dashboard');
@@ -30,15 +26,13 @@ const oneSignalAppId       = process.env.ONE_SIGNAL_APP_ID || "your-one-signal-a
 const oneSignalApiKey      = process.env.ONE_SIGNAL_REST_API_KEY || "your-one-signal-api-key";
 
 
-const urlencodedParser = bodyParser.urlencoded({extended: false});
-
 if (!databaseUri) {
     console.log('DATABASE_URI not specified, falling back to localhost.');
 }
 
 const api = new ParseServer({
     databaseURI     : databaseUri || 'mongodb://localhost:27017/dev',
-    cloud           : process.env.CLOUD_CODE_MAIN || __dirname + '/cloud/main.js',
+    cloud           : './cloud/main.js',
     appId           : appId,
     masterKey       : masterKey,
     serverURL       : serverUrl,
@@ -46,6 +40,9 @@ const api = new ParseServer({
     verifyUserEmails: false,
     publicServerURL : serverUrl,
     appName         : appName,
+    liveQuery       : {
+        classNames: ['GalleryComment']
+    },
     emailAdapter    : {
         module : 'parse-server-simple-mailgun-adapter',
         options: {
@@ -94,51 +91,24 @@ const dashboard = new ParseDashboard({
     iconsFolder: 'www/assets/images'
 }, true);
 
-const app = require('express')();
+const app = express();
 
-// parse application/x-www-form-urlencoded
-app.use(bodyParser.urlencoded({extended: false}))
-
-// parse application/json
-app.use(bodyParser.json())
-
-app.use(cookieParser());
-app.use(methodOverride());
-
-app.use(cookieSession({
-    name  : 'photogram.sessison',
-    secret: '9l4MP4ruIN',
-    maxAge: 15724800000
-}));
-
-
-app.use((req, res, next) => {
-    res.locals.user      = req.session.user;
-    res.locals.page      = req.url.split('/').pop();
-    res.locals.appId     = appId;
-    res.locals.serverUrl = serverUrl;
-    next();
-});
-
-
-// Parse Server plays nicely with the rest of your web routes
-//app.get('/', function (req, res) {
-//    res.status(200).send('I dream of being a website.  Please star the parse-server repo on GitHub!');
-//});
-
+// Public Folder
 app.use('/', express.static(path.join(__dirname, '/www')));
-
-
-// make the Parse Dashboard available at /dashboard
-//app.use('/dashboard', dashboard);
-
-
 
 // Serve the Parse API on the /parse URL prefix
 const mountPath = process.env.PARSE_MOUNT || '/parse';
 app.use(mountPath, api);
 
 
-app.listen(port, function () {
-    console.log('listening on: ' + serverUrl);
+// make the Parse Dashboard available at /dashboard
+app.use('/dashboard', dashboard);
+
+
+var httpServer = require('http').createServer(app);
+httpServer.listen(port, function () {
+    console.log('parse-server-example running on port ' + port + '.');
 });
+
+// This will enable the Live Query real-time server
+ParseServer.createLiveQueryServer(httpServer);
