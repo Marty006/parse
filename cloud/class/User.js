@@ -19,7 +19,39 @@ module.exports = {
     validateEmail      : validateEmail
 };
 
-function profile() {
+function profile(req, res) {
+    var params = req.params;
+    var user   = req.user;
+    var query  = new Parse.Query(Parse.User);
+
+    // User Profile
+    // Qty Galleries
+    // Qty Comments
+
+    query.equalTo('name', 'Admin');
+    query.equalTo('users', user);
+    query.first().then(function (adminRole) {
+
+        //if (!adminRole) {
+        //    return res.error('Not Authorized');
+        //}
+
+        const query = new Parse.Query(Parse.User);
+
+        if (params.filter != '') {
+            query.contains('email', params.filter);
+        }
+
+        query.descending('createdAt');
+        query.limit(params.limit);
+        query.skip((params.page * params.limit) - params.limit);
+
+        return Parse.Promise.when(query.find({useMasterKey: true}), query.count({useMasterKey: true}));
+    })
+         .then((users, total) =>res.success({
+             users: users,
+             total: total
+         }), error=> res.error(error.message));
 
 }
 
@@ -69,13 +101,13 @@ function afterSave(req, res) {
             userData.set('photo', user.get('photo'));
         } else {
 
-            var aclUserData = new Parse.ACL();
-            aclUserData.setPublicReadAccess(true);
-            aclUserData.setWriteAccess(user, true);
+            const roleACL = new Parse.ACL();
+            roleACL.setPublicReadAccess(true);
+            roleACL.setWriteAccess(user, true);
 
-            let userData = new Parse.Object('UserData', {
+            userData = new Parse.Object('UserData', {
                 user : user,
-                ACL  : aclUserData,
+                ACL  : roleACL,
                 name : user.get('name'),
                 photo: user.get('photo'),
             });
@@ -95,16 +127,15 @@ function afterSave(req, res) {
         query.equalTo('users', userRequesting);
         query.first().then(function (isAdmin) {
 
-            if (!isAdmin && user.get('roleName') === 'Admin') {
-                return Parse.Promise.error({
-                    code   : 1,
-                    message: 'Not Authorized'
-                });
-            }
+            //if (!isAdmin && user.get('roleName') === 'Admin') {
+            //    return Parse.Promise.error({
+            //        code   : 1,
+            //        message: 'Not Authorized'
+            //    });
+            //}
 
-            var roleName = user.get('roleName') || 'User';
-
-            var innerQuery = new Parse.Query(Parse.Role);
+            let roleName   = user.get('roleName') || 'User';
+            let innerQuery = new Parse.Query(Parse.Role);
             innerQuery.equalTo('name', roleName);
             return innerQuery.first();
         }).then(function (role) {
@@ -136,6 +167,7 @@ function createUser(req, res, next) {
                 .set('name', data.name)
                 .set('username', data.email)
                 .set('email', data.email)
+                .set('gender', data.password)
                 .set('password', data.password)
                 .set('photo', data.photo)
                 .set('roleName', data.roleName)
@@ -163,11 +195,11 @@ function getUsers(req, res, next) {
     query.equalTo('users', user);
     query.first().then(function (adminRole) {
 
-        if (!adminRole) {
-            return res.error('Not Authorized');
-        }
+        //if (!adminRole) {
+        //    return res.error('Not Authorized');
+        //}
 
-        var query = new Parse.Query(Parse.User);
+        const query = new Parse.Query(Parse.User);
 
         if (params.filter != '') {
             query.contains('email', params.filter);
@@ -177,10 +209,7 @@ function getUsers(req, res, next) {
         query.limit(params.limit);
         query.skip((params.page * params.limit) - params.limit);
 
-        var queryUsers = query.find({useMasterKey: true});
-        var queryCount = query.count({useMasterKey: true});
-
-        return Parse.Promise.when(queryUsers, queryCount);
+        return Parse.Promise.when(query.find({useMasterKey: true}), query.count({useMasterKey: true}));
     })
          .then((users, total) =>res.success({
              users: users,
@@ -197,9 +226,9 @@ function updateUser(req, res, next) {
     query.equalTo('users', user);
     query.first().then(function (adminRole) {
 
-        if (!adminRole) {
-            return res.error('Not Authorized');
-        }
+        //if (!adminRole) {
+        //    return res.error('Not Authorized');
+        //}
 
         var query = new Parse.Query(Parse.User);
         query.equalTo('objectId', data.id);

@@ -1,6 +1,5 @@
 'use strict';
 const express              = require('express');
-const cors                 = require('cors')
 const bodyParser           = require('body-parser');
 const cookieParser         = require('cookie-parser');
 const methodOverride       = require('method-override');
@@ -17,7 +16,7 @@ const serverUrl            = process.env.SERVER_URL || 'http://localhost:1337/pa
 const appId                = process.env.APP_ID || 'myAppId';
 const masterKey            = process.env.MASTER_KEY || 'myMasterKey';
 const restApiKey           = process.env.MASTER_REST_KEY || 'myRestApiKey';
-const appName              = process.env.APP_NAME || 'nearme';
+const appName              = process.env.APP_NAME || 'photogram';
 // Mailgun configuration
 const apiKey               = process.env.MAILGUN_API_KEY || 'YOUR_MAILGUN_API_KEY';
 const domain               = process.env.MAILGUN_DOMAIN || 'YOUR_MAILGUN_DOMAIN';
@@ -92,12 +91,11 @@ const dashboard = new ParseDashboard({
             pass: 'photogram123'
         }
     ],
-    iconsFolder: 'public/assets/images'
+    iconsFolder: 'www/assets/images'
 }, true);
 
 const app = require('express')();
 
-app.use(cors);
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({extended: false}))
 
@@ -113,18 +111,8 @@ app.use(cookieSession({
     maxAge: 15724800000
 }));
 
-app.use((req, res, next)=> {
-    console.log('Time', Date.now());
-    next();
-});
 
 app.use((req, res, next) => {
-
-    console.log('REQ Locals: User', req.session.user);
-    console.log('REQ Locals: page', req.url.split('/').pop());
-    console.log('REQ Locals: appId', appId);
-    console.log('REQ Locals: serverUrl', serverUrl);
-
     res.locals.user      = req.session.user;
     res.locals.page      = req.url.split('/').pop();
     res.locals.appId     = appId;
@@ -138,14 +126,12 @@ app.use((req, res, next) => {
 //    res.status(200).send('I dream of being a website.  Please star the parse-server repo on GitHub!');
 //});
 
-app.use('/', express.static(path.join(__dirname, '/www/public')));
+app.use('/', express.static(path.join(__dirname, '/www')));
 
 
 // make the Parse Dashboard available at /dashboard
 //app.use('/dashboard', dashboard);
 
-// Serve static assets from the /public folder
-app.use('/admin', express.static(path.join(__dirname, '/www/admin')));
 
 
 // Serve the Parse API on the /parse URL prefix

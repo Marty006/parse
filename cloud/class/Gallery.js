@@ -6,12 +6,114 @@ const GalleryActivity = require('./../class/GalleryActivity');
 const ParseObject     = Parse.Object.extend('Gallery');
 
 module.exports = {
+    beforeSave    : beforeSave,
+    afterSave     : afterSave,
+    afterDelete   : afterDelete,
     feed          : feed,
     isGalleryLiked: isGalleryLiked,
     likeGallery   : likeGallery,
-    beforeSave    : beforeSave,
-    afterSave     : afterSave
 };
+
+function afterDelete(req, res) {
+    new Parse.Query('GalleryComment')
+        .equalTo('gallery', req.object)
+        .find({
+            success: comments=> {
+                Parse.Object.destroyAll(comments, {
+                    success: ()=> {},
+                    error  : error =>console.error("Error deleting related comments " + error.code + ": " + error.message)
+                });
+            },
+            error  : error=>console.error("Error finding related comments " + error.code + ": " + error.message)
+        });
+}
+
+
+function beforeSave(req, res) {
+    const post = req.object;
+    const user = req.user || req.object.get('user');
+
+    //const isMasterKey = req.master;
+
+    //if (!gallery.existed()) {
+    //    var acl = new Parse.ACL();
+    //    acl.setPublicReadAccess(true);
+    //    acl.setRoleWriteAccess('Admin', true);
+    //    acl.setWriteAccess(user, true);
+    //    gallery.setACL(acl);
+    //}
+
+    //if (isMasterKey) {
+    //    return res.success();
+    //}
+
+    if (!user) {
+        return res.error('Not Authorized');
+    }
+
+    if (!post.get('image')) {
+        return res.error('Upload the first image');
+    }
+
+
+    if (!post.get('title')) {
+        return res.error('Need image title');
+    }
+
+    if (!post.dirty('image')) {
+        return res.success();
+    }
+
+
+    console.log('Gallery Add', post, user);
+
+    // Like
+
+    //https://parse.com/docs/js/guide#performance-implement-efficient-searches
+    let toLowerCase = w => w.toLowerCase();
+    var words       = post.get('title').split(/\b/);
+    words           = _.map(words, toLowerCase);
+    var stopWords   = ['the', 'in', 'and']
+    words           = _.filter(words, w=> w.match(/^\w+$/) && !_.includes(stopWords, w));
+    var hashtags    = post.get('title').match(/#.+?\b/g);
+    hashtags        = _.map(hashtags, toLowerCase)
+
+    post.set('words', words);
+    post.set('hashtags', hashtags);
+
+    // User by
+    post.set('user', user);
+
+    post.set('isApproved', true);
+
+    // Resize Image
+    var imageUrl = post.get('image').url();
+
+    Image.resize(imageUrl, 640, 640).then(function (base64) {
+        return Image.saveImage(base64);
+    }).then(function (savedFile) {
+        post.set('image', savedFile);
+        return Image.resize(imageUrl, 160, 160);
+    }).then(function (base64) {
+        return Image.saveImage(base64);
+    }).then(function (savedFile) {
+        post.set('imageThumb', savedFile);
+        res.success();
+    }, function (error) {
+        res.error(error.message);
+    });
+}
+
+function afterSave(req, res) {
+    const user   = req.user;
+    let activity = {
+        action  : 'add photo',
+        fromUser: user,
+        gallery : req.object
+    };
+    console.log(activity);
+    GalleryActivity.create(activity);
+}
 
 function feed(req, res, next) {
     const _page  = req.params.page || 1;
@@ -44,7 +146,7 @@ function feed(req, res, next) {
 
 
             return res.success(_result);
-            
+
             if (!data.length) {
                 res.error(true);
             }
@@ -62,7 +164,7 @@ function feed(req, res, next) {
                     likes     : item.get('qtdLike') || 0,
                     image     : item.get('image'),
                     user      : item.get('user'),
-                    user2      : item.get('User'),
+                    user2     : item.get('User'),
                     userName  : item.get('user').get('name'),
                     userAvatar: item.get('user').get('photo')
                 };
@@ -172,99 +274,6 @@ function feed(req, res, next) {
     //
     //    });
     //});
-}
-
-
-function beforeSave(req, res) {
-
-    const Image = require('./../helpers/image');
-    const post  = req.object;
-    const user  = req.user;
-
-    console.log('Gallery Add', post);
-    //const isMasterKey = req.master;
-
-    //if (!gallery.existed()) {
-    //    var acl = new Parse.ACL();
-    //    acl.setPublicReadAccess(true);
-    //    acl.setRoleWriteAccess('Admin', true);
-    //    acl.setWriteAccess(user, true);
-    //    gallery.setACL(acl);
-    //}
-
-    //if (isMasterKey) {
-    //    return res.success();
-    //}
-
-    if (!user) {
-        return res.error('Not Authorized');
-    }
-
-    if (!post.get('image')) {
-        return res.error('Upload the first image');
-    }
-
-
-    if (!post.get('title')) {
-        return res.error('Need image title');
-    }
-
-    if (!post.dirty('image')) {
-        return res.success();
-    }
-
-
-    // Like
-
-    //https://parse.com/docs/js/guide#performance-implement-efficient-searches
-    let toLowerCase = w => w.toLowerCase();
-    var words       = post.get('title').split(/\b/);
-    words           = _.map(words, toLowerCase);
-    var stopWords   = ['the', 'in', 'and']
-    words           = _.filter(words, w=> w.match(/^\w+$/) && !_.includes(stopWords, w));
-    var hashtags    = post.get('title').match(/#.+?\b/g);
-    hashtags        = _.map(hashtags, toLowerCase);
-
-    post.set('words', words);
-    post.set('hashtags', hashtags);
-
-    // User by Post Image
-    post.set('user', user);
-
-    post.set('isApproved', true);
-
-    // Resize Image
-    var imageUrl = post.get('image').url();
-
-    Image
-        .resize(imageUrl, 640, 640)
-        .then(function (base64) {
-            return Image.saveImage(base64);
-        })
-        .then(function (savedFile) {
-            post.set('image', savedFile);
-            return Image.resize(imageUrl, 160, 160);
-        })
-        .then(function (base64) {
-            return Image.saveImage(base64);
-        })
-        .then(function (savedFile) {
-            post.set('imageThumb', savedFile);
-            res.success();
-        }, function (error) {
-            res.error(error.message);
-        });
-}
-
-function afterSave(req, res) {
-    const user   = req.user;
-    let activity = {
-        action : 'add photo',
-        user   : user,
-        gallery: req.object
-    };
-    console.log(activity);
-    GalleryActivity.create(activity);
 }
 
 

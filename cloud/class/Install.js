@@ -1,5 +1,6 @@
 'use strict';
 const GallerySetting = require('../class/GallerySetting');
+
 module.exports       = {
     status: status,
     start : start
