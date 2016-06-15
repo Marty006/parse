@@ -16,6 +16,8 @@ function beforeSave(req, res) {
         return res.error('Not Authorized');
     }
 
+    comment.set('user', user);
+
     if (!comment.existed()) {
         var acl = new Parse.ACL();
         acl.setPublicReadAccess(true);
@@ -25,33 +27,31 @@ function beforeSave(req, res) {
         comment.set('isInappropriate', false);
     }
 
-    if (comment.existed() && comment.dirty('isInappropriate')) {
         return res.success();
-    }
+    //if (comment.existed() && comment.dirty('isInappropriate')) {
+    //}
 
-    new Parse
-        .Query('GalleryComment')
-        .equalTo('userData', userData)
-        .equalTo('gallery', gallery)
-        .find({
-            success: res1 => {
-                if (res1.length > 0) {
-                    res.error('You already write a comment for this gallery');
-                } else {
-
-                    if (comment.get('rating') < 1) {
-                        res.error('You cannot give less than one star');
-                    } else if (comment.get('rating') > 5) {
-                        res.error('You cannot give more than five stars');
-                    } else {
-                        res.success();
-                    }
-                }
-            },
-            error  : (obj, error) => {
-                res.error(error);
-            }
-        });
+    //new Parse
+    //    .Query('GalleryComment')
+    //    .equalTo('userData', userData)
+    //    .equalTo('gallery', gallery)
+    //    .find({
+    //        success: res1 => {
+    //            if (res1.length > 0) {
+    //                res.error('You already write a comment for this gallery');
+    //            } else {
+    //
+    //                if (comment.get('rating') < 1) {
+    //                    res.error('You cannot give less than one star');
+    //                } else if (comment.get('rating') > 5) {
+    //                    res.error('You cannot give more than five stars');
+    //                } else {
+    //                    res.success();
+    //                }
+    //            }
+    //        },
+    //        error  : res.error
+    //    });
 }
 
 function afterSave(req, res) {
