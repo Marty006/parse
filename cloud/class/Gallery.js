@@ -136,14 +136,9 @@ function feed(req, res, next) {
 
     let _query = new Parse.Query(ParseObject);
 
-    //if (req.params.user) {
-    //    _query.equalTo('user', req.params.user)
-    //}
-
     _query
         .equalTo('isApproved', true)
         .descending('createdAt')
-        .include('UserData')
         .limit(_limit)
         .skip((_page * _limit) - _limit);
 
@@ -154,139 +149,49 @@ function feed(req, res, next) {
         .then((data, total)=> {
             let _result = {
                 total: total,
-                rows : data
+                rows : []
             };
-
-
-            return res.success(_result);
 
             if (!data.length) {
                 res.error(true);
             }
 
             let cb = _.after(data.length, ()=> {
-                console.log('Agora');
                 res.success(_result);
             });
 
             _.each(data, item=> {
 
-                var obj = {
-                    id        : item.id,
-                    createdAt : item.get('createdAt'),
-                    likes     : item.get('qtdLike') || 0,
-                    image     : item.get('image'),
-                    user      : item.get('user'),
-                    user2     : item.get('User'),
-                    userName  : item.get('user').get('name'),
-                    userAvatar: item.get('user').get('photo')
-                };
+                let userGet = item.get('user');
+                new Parse.Query('UserData').equalTo('user', userGet).first().then(user=> {
 
-                console.log(obj);
-                //var _comments = item.relation('comments');
+                    let obj = {
+                        galleryObj   : item,
+                        createdAt    : item.get('createdAt'),
+                        image        : item.get('image'),
+                        imageThubm   : item.get('imageThubm'),
+                        title        : item.get('title'),
+                        commentsTotal: item.get('commentsTotal') || 0,
+                        likesTotal   : item.get('likesTotal') || 0,
+                        user         : {
+                            userObj: user,
+                            id     : user.id,
+                            name   : user.get('name'),
+                            status : user.get('status'),
+                            photo  : user.get('photo')
+                        }
+                    };
+                    console.log('Obj', obj);
 
-                _result.rows.push(obj);
-                cb();
+                    // Comments
+                    _result.rows.push(obj);
+                    cb();
+                }, err=>console.log);
+
             });
 
 
         }, error=> res.error(error.message));
-
-
-    //_query.then(resp=> {
-    //
-    //    console.log(resp);
-    //    console.log('home', resp);
-    //    var qtd = resp.length;
-    //
-    //    if (!qtd) {
-    //        res.error(true);
-    //    }
-    //
-    //    console.log('Feed', resp);
-    //
-    //    resp.map(item=> {
-    //        let user = item.get('user');
-    //        console.log('user', user);
-    //        console.log('name', user.get('name'));
-    //        //console.log(user.get('image'));
-    //    })
-    //
-    //    return res.success(resp);
-    //
-    //    let cb = _.after(resp.length, function () {
-    //        res.success(_result);
-    //    });
-    //
-    //    _.each(resp, item=> {
-    //        //grab relations
-    //
-    //        var obj = {
-    //            id        : item.get('id'),
-    //            created   : item.get('createdAt'),
-    //            likes     : item.get('qtdLike') || 0,
-    //            image     : item.get('image'),
-    //            user_id   : item.attributes.user.id,
-    //            userName  : item.attributes.user.attributes.name,
-    //            userAvatar: User.avatar(item.attributes.user.attributes),
-    //            userStatus: item.attributes.user.attributes.status
-    //        };
-    //
-    //        var _likes    = item.relation('likes');
-    //        var _comments = item.relation('comments');
-    //
-    //        _likes
-    //            .query()
-    //            .equalTo('gallery', item)
-    //            .equalTo('user', User)
-    //            .count()
-    //            .then(function (liked) {
-    //                item.liked = (liked > 0) ? liked = true : liked = false;
-    //                _comments
-    //                    .query()
-    //                    .include('commentBy')
-    //                    .ascending('createdAt')
-    //                    .limit(_limitComment)
-    //                    .find()
-    //                    .then(function (comments) {
-    //
-    //                        var commentsData = [];
-    //                        comments.map(function (item) {
-    //                            var user = item.attributes.commentBy;
-    //
-    //                            var comment = {
-    //                                id        : item.id,
-    //                                text      : item.attributes.text,
-    //                                user      : user,
-    //                                created   : item.attributes.createdAt,
-    //                                userAvatar: User.avatar(user.attributes),
-    //                                userName  : user.attributes.name
-    //                            };
-    //                            commentsData.push(comment);
-    //                        });
-    //
-    //                        var obj = {
-    //                            id        : item.id,
-    //                            item      : item.attributes,
-    //                            created   : item.createdAt,
-    //                            likes     : item.attributes.qtdLike || 0,
-    //                            liked     : liked,
-    //                            img       : item.attributes.img._url,
-    //                            comments  : commentsData,
-    //                            user_id   : item.attributes.user.id,
-    //                            userName  : item.attributes.user.attributes.name,
-    //                            userAvatar: User.avatar(item.attributes.user.attributes),
-    //                            userStatus: item.attributes.user.attributes.status
-    //                        };
-    //
-    //                        // console.table(obj);
-    //                        _result.rows.push(obj);
-    //                        cb();
-    //                    });
-    //            });
-    //
-    //    });
-    //});
 }
 
 

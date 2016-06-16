@@ -17,12 +17,14 @@ Parse.Cloud.define('install', Install.start);
 // Admin Dashboard
 
 // GalleryActivity
-//Parse.Cloud.beforeSave('GalleryActivity', GalleryActivity.beforeSave);
+Parse.Cloud.beforeSave('GalleryActivity', GalleryActivity.beforeSave);
 //Parse.Cloud.afterSave('GalleryActivity', GalleryActivity.afterSave);
 
 // User
 Parse.Cloud.beforeSave(Parse.User, User.beforeSave);
 Parse.Cloud.afterSave(Parse.User, User.afterSave);
+//Parse.Cloud.afterDelete(Parse.User, User.afterDelete);
+
 Parse.Cloud.define('findUserByEmail', User.findUserByEmail);
 Parse.Cloud.define('profile', User.profile);
 Parse.Cloud.define('getUsers', User.getUsers);
@@ -33,11 +35,14 @@ Parse.Cloud.define('saveFacebookPicture', User.saveFacebookPicture);
 Parse.Cloud.define('validateUsername', User.validateUsername);
 Parse.Cloud.define('validateEmail', User.validateEmail);
 
+// Activity
+Parse.Cloud.define('feedActivity', GalleryActivity.feed);
+
 // Gallery
 Parse.Cloud.beforeSave('Gallery', Gallery.beforeSave);
 Parse.Cloud.afterSave('Gallery', Gallery.afterSave);
 Parse.Cloud.afterDelete('Gallery', Gallery.afterDelete);
-Parse.Cloud.define('feed', Gallery.feed);
+Parse.Cloud.define('feedGallery', Gallery.feed);
 Parse.Cloud.define('likeGallery', Gallery.likeGallery);
 Parse.Cloud.define('isGalleryLiked', Gallery.isGalleryLiked);
 

@@ -6,6 +6,7 @@ const ParseObject     = Parse.Object.extend('User');
 module.exports = {
     beforeSave         : beforeSave,
     afterSave          : afterSave,
+    afterDelete        : afterDelete,
     profile            : profile,
     avatar             : avatar,
     get                : get,
@@ -86,6 +87,10 @@ function beforeSave(req, res) {
 
 }
 
+
+function afterDelete(req, res) {
+
+}
 function afterSave(req, res) {
     var user           = req.object;
     var userRequesting = req.user;
@@ -339,7 +344,8 @@ function validateEmail(req, res) {
 function incrementGallery(userId) {
     new Parse.Query('UserData').equalTo('user', userId).first().then(user => {
         user.increment('galleriesTotal');
-        user.save(null, {useMasterKey: true}).then(success=>console.log('galleriesTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
+        user.save(null, {useMasterKey: true})
+            .then(success=>console.log('galleriesTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
     });
 }
 
@@ -347,20 +353,23 @@ function incrementGallery(userId) {
 function incrementFollowers(userId) {
     new Parse.Query('UserData').equalTo('user', userId).first().then(user => {
         user.increment('followersTotal');
-        user.save(null, {useMasterKey: true}).then(success=>console.log('followersTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
+        user.save(null, {useMasterKey: true})
+            .then(success=>console.log('followersTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
     });
 }
 //seguindo
 function incrementFollowing(userId) {
     new Parse.Query('UserData').equalTo('user', userId).first().then(user => {
         user.increment('followingTotal');
-        user.save(null, {useMasterKey: true}).then(success=>console.log('followingTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
+        user.save(null, {useMasterKey: true})
+            .then(success=>console.log('followingTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
     });
 }
 
 function incrementComment(userId) {
     new Parse.Query('UserData').equalTo('user', userId).first().then(user => {
         user.increment('comemntTotal');
-        user.save(null, {useMasterKey: true}).then(success=>console.log('comemntTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
+        user.save(null, {useMasterKey: true})
+            .then(success=>console.log('comemntTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
     });
 }

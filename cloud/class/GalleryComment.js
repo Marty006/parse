@@ -7,10 +7,9 @@ module.exports    = {
 };
 
 function beforeSave(req, res) {
-    var comment  = req.object;
-    var user     = req.user;
-    var userData = comment.get('userData');
-    var gallery  = comment.get('gallery');
+    var comment = req.object;
+    var user    = req.user;
+    var gallery = comment.get('gallery');
 
     if (!user) {
         return res.error('Not Authorized');
@@ -57,7 +56,6 @@ function beforeSave(req, res) {
 function afterSave(req, res) {
     const User    = req.user;
     const comment = req.object;
-    var rating    = comment.get('rating');
     var galleryId = comment.get('gallery').id;
 
     new Parse.Query('Gallery').get(galleryId).then(gallery => {

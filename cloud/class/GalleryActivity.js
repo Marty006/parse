@@ -1,14 +1,86 @@
 'use strict';
+const _           = require('lodash');
+const User        = require('./../class/User');
 const ParseObject = Parse.Object.extend('GalleryActivity');
-module.exports    = {
+
+module.exports = {
     beforeSave: beforeSave,
     afterSave : afterSave,
     create    : create,
+    feed      : feed,
 };
+
+
+function feed(req, res, next) {
+    const _page  = req.params.page || 1;
+    const _limit = req.params.limit || 10;
+
+    console.log('Start Feed', req.params);
+
+    let _query = new Parse.Query(ParseObject);
+
+    _query
+        .descending('createdAt')
+        .include('gallery')
+        .limit(_limit)
+        .skip((_page * _limit) - _limit);
+
+    let queryFind  = _query.find();
+    let queryCount = _query.count();
+
+    new Parse.Promise.when(queryFind, queryCount)
+        .then((data, total)=> {
+            let _result = {
+                total: total,
+                rows : []
+            };
+
+            if (!data.length) {
+                res.error(true);
+            }
+
+            let cb = _.after(data.length, ()=> res.success(_result));
+
+            _.each(data, item=> {
+
+                let userGet = item.get('fromUser');
+                new Parse.Query('UserData').equalTo('user', userGet).first().then(user=> {
+
+                    let obj = {
+                        obj      : item,
+                        createdAt: item.get('createdAt'),
+                        gallery  : item.get('gallery'),
+                        action   : item.get('action')
+                    };
+                    if (user) {
+                        obj.user = {
+                            userObj: user,
+                            id     : user.id,
+                            name   : user.get('name') || user.get('username') || user.get('email'),
+                            status : user.get('status'),
+                            photo  : user.get('photo')
+                        }
+                    }
+                    console.log('Obj', obj);
+
+                    _result.rows.push(obj);
+                    cb();
+                }, err=>console.log);
+
+            });
+
+
+        }, error=> res.error(error.message));
+}
 
 function beforeSave(req, res) {
     const currentUser = req.user;
     const objectUser  = req.object.get('fromUser');
+    const gallery     = req.object.get('gallery');
+
+    if (gallery) {
+        req.object.set('toUser', gallery.user);
+    }
 
     if (!currentUser || !objectUser) {
         response.error('An Activity should have a valid fromUser.');
@@ -24,6 +96,7 @@ function afterSave(req, res) {
         return
     }
 
+    // Send Notification toUser
     const toUser = req.object.get('toUser');
     if (!toUser) {
         throw 'Undefined toUser. Skipping push for Activity ' + req.object.get('type') + ' : ' + req.object.id;
