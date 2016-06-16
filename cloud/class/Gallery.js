@@ -55,7 +55,6 @@ function beforeSave(req, res) {
         return res.error('Upload the first image');
     }
 
-
     if (!post.get('title')) {
         return res.error('Need image title');
     }
@@ -63,10 +62,6 @@ function beforeSave(req, res) {
     if (!post.dirty('image')) {
         return res.success();
     }
-
-
-    console.log('Gallery Add', post, user);
-
     // Like
 
     //https://parse.com/docs/js/guide#performance-implement-efficient-searches
@@ -104,6 +99,23 @@ function beforeSave(req, res) {
     });
 }
 
+function afterDelete(req, res) {
+    var query = new Parse.Query('GalleryComment');
+    query.equalTo('gallery', req.user);
+
+    query.find().then(results=> {
+        // Collect one promise for each delete into an array.
+        let promises = [];
+        _.each(results, result =>promises.push(result.destroy()));
+        // Return a new promise that is resolved when all of the deletes are finished.
+        return Parse.Promise.when(promises);
+
+    }).then({
+        success: res.success,
+        error  : req.error
+    });
+}
+
 function afterSave(req, res) {
     const user   = req.user;
     let activity = {
@@ -113,6 +125,7 @@ function afterSave(req, res) {
     };
     console.log(activity);
     GalleryActivity.create(activity);
+    User.incrementGallery(req.user);
 }
 
 function feed(req, res, next) {
@@ -130,7 +143,7 @@ function feed(req, res, next) {
     _query
         .equalTo('isApproved', true)
         .descending('createdAt')
-        .include('User')
+        .include('UserData')
         .limit(_limit)
         .skip((_page * _limit) - _limit);
 

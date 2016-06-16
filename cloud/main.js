@@ -36,7 +36,7 @@ Parse.Cloud.define('validateEmail', User.validateEmail);
 // Gallery
 Parse.Cloud.beforeSave('Gallery', Gallery.beforeSave);
 Parse.Cloud.afterSave('Gallery', Gallery.afterSave);
-Parse.Cloud.afterDelete('Gallery', Gallery.afterSave);
+Parse.Cloud.afterDelete('Gallery', Gallery.afterDelete);
 Parse.Cloud.define('feed', Gallery.feed);
 Parse.Cloud.define('likeGallery', Gallery.likeGallery);
 Parse.Cloud.define('isGalleryLiked', Gallery.isGalleryLiked);

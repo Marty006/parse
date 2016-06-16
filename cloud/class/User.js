@@ -16,21 +16,19 @@ module.exports = {
     destroyUser        : destroyUser,
     saveFacebookPicture: saveFacebookPicture,
     validateUsername   : validateUsername,
-    validateEmail      : validateEmail
+    validateEmail      : validateEmail,
+    incrementGallery   : incrementGallery,
+    incrementFollowers : incrementFollowers,
+    incrementFollowing : incrementFollowing,
+    incrementComment   : incrementComment,
 };
+
 
 function profile(req, res) {
     var params = req.params;
     var user   = req.user;
-    var query  = new Parse.Query(Parse.User);
 
-    // User Profile
-    // Qty Galleries
-    // Qty Comments
-
-    query.equalTo('name', 'Admin');
-    query.equalTo('users', user);
-    query.first().then(function (adminRole) {
+    new Promise.Query('UserData').equalTo('users', user).first().then(function (user) {
 
         //if (!adminRole) {
         //    return res.error('Not Authorized');
@@ -48,10 +46,10 @@ function profile(req, res) {
 
         return Parse.Promise.when(query.find({useMasterKey: true}), query.count({useMasterKey: true}));
     })
-         .then((users, total) =>res.success({
-             users: users,
-             total: total
-         }), error=> res.error(error.message));
+                                 .then((users, total) =>res.success({
+                                     users: users,
+                                     total: total
+                                 }), error=> res.error(error.message));
 
 }
 
@@ -92,9 +90,7 @@ function afterSave(req, res) {
     var user           = req.object;
     var userRequesting = req.user;
 
-    new Parse.Query('UserData')
-        .equalTo('user', user)
-        .first().then(userData => {
+    new Parse.Query('UserData').equalTo('user', user).first().then(userData => {
 
         if (userData) {
             userData.set('name', user.get('name'));
@@ -243,7 +239,7 @@ function updateUser(req, res, next) {
         objUser.set('gender', data.gender);
         objUser.set('email', data.email);
 
-        if(data.photo) {
+        if (data.photo) {
             objUser.set('photo', data.photo);
         }
 
@@ -337,4 +333,34 @@ function validateEmail(req, res) {
                 res.success(true)
             }
         })
+}
+
+
+function incrementGallery(userId) {
+    new Parse.Query('UserData').equalTo('user', userId).first().then(user => {
+        user.increment('galleriesTotal');
+        user.save(null, {useMasterKey: true}).then(success=>console.log('galleriesTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
+    });
+}
+
+//seguidoes
+function incrementFollowers(userId) {
+    new Parse.Query('UserData').equalTo('user', userId).first().then(user => {
+        user.increment('followersTotal');
+        user.save(null, {useMasterKey: true}).then(success=>console.log('followersTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
+    });
+}
+//seguindo
+function incrementFollowing(userId) {
+    new Parse.Query('UserData').equalTo('user', userId).first().then(user => {
+        user.increment('followingTotal');
+        user.save(null, {useMasterKey: true}).then(success=>console.log('followingTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
+    });
+}
+
+function incrementComment(userId) {
+    new Parse.Query('UserData').equalTo('user', userId).first().then(user => {
+        user.increment('comemntTotal');
+        user.save(null, {useMasterKey: true}).then(success=>console.log('comemntTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
+    });
 }

@@ -27,7 +27,7 @@ function beforeSave(req, res) {
         comment.set('isInappropriate', false);
     }
 
-        return res.success();
+    return res.success();
     //if (comment.existed() && comment.dirty('isInappropriate')) {
     //}
 
@@ -60,11 +60,9 @@ function afterSave(req, res) {
     var rating    = comment.get('rating');
     var galleryId = comment.get('gallery').id;
 
-    new Parse
-        .Query('Gallery')
-        .get(galleryId).then(gallery => {
+    new Parse.Query('Gallery').get(galleryId).then(gallery => {
 
-        var currentTotalRating = gallery.get('commentsTotal') || 0;
+        let commentsTotal = gallery.get('commentsTotal') || 0;
 
         gallery.increment('commentsTotal');
         gallery.set('user', User);
@@ -72,4 +70,5 @@ function afterSave(req, res) {
 
     }, error=>console.log('Got an error ' + error.code + ' : ' + error.message));
 
+    User.incrementComment();
 }
