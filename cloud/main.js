@@ -17,7 +17,7 @@ Parse.Cloud.define('install', Install.start);
 // Admin Dashboard
 
 // GalleryActivity
-Parse.Cloud.beforeSave('GalleryActivity', GalleryActivity.beforeSave);
+Parse.Cloud.define('feedActivity', GalleryActivity.feed);
 //Parse.Cloud.afterSave('GalleryActivity', GalleryActivity.afterSave);
 
 // User
@@ -34,9 +34,6 @@ Parse.Cloud.define('destroyUser', User.destroyUser);
 Parse.Cloud.define('saveFacebookPicture', User.saveFacebookPicture);
 Parse.Cloud.define('validateUsername', User.validateUsername);
 Parse.Cloud.define('validateEmail', User.validateEmail);
-
-// Activity
-Parse.Cloud.define('feedActivity', GalleryActivity.feed);
 
 // Gallery
 Parse.Cloud.beforeSave('Gallery', Gallery.beforeSave);

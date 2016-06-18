@@ -40,9 +40,9 @@ const api = new ParseServer({
     verifyUserEmails: false,
     publicServerURL : serverUrl,
     appName         : appName,
-    liveQuery       : {
-        classNames: ['GalleryComment']
-    },
+    //liveQuery       : {
+    //    classNames: ['GalleryComment']
+    //},
     emailAdapter    : {
         module : 'parse-server-simple-mailgun-adapter',
         options: {

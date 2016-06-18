@@ -7,8 +7,6 @@ module.exports    = {
 };
 
 function start(acl) {
-    console.log('Start Setting');
-    // Setting Create
     let promises = [];
     let settings = require('../data/setting.json');
 

@@ -2,8 +2,7 @@
 const Image           = require('../helpers/image');
 const GalleryActivity = require('../class/GalleryActivity');
 const ParseObject     = Parse.Object.extend('User');
-
-module.exports = {
+module.exports        = {
     beforeSave         : beforeSave,
     afterSave          : afterSave,
     afterDelete        : afterDelete,
@@ -16,6 +15,7 @@ module.exports = {
     updateUser         : updateUser,
     destroyUser        : destroyUser,
     saveFacebookPicture: saveFacebookPicture,
+    follow             : follow,
     validateUsername   : validateUsername,
     validateEmail      : validateEmail,
     incrementGallery   : incrementGallery,
@@ -24,6 +24,24 @@ module.exports = {
     incrementComment   : incrementComment,
 };
 
+function follow(req, res) {
+    const object = req.params;
+    const user   = req.user;
+    if (!user) {
+        return res.error('Not Authorized');
+    }
+
+    if (!object.toUser) {
+        return res.error('Not Authorized');
+    }
+
+    new Parse.Query(Parse.Object.extend('UserFollow'))
+        .set('toUser', object.toUser)
+        .set('fromUser', user)
+        .set('date', Date())
+        .save({useMasterKey: true})
+        .then(res.success, error=>res.error);
+}
 
 function profile(req, res) {
     var params = req.params;
@@ -35,22 +53,21 @@ function profile(req, res) {
         //    return res.error('Not Authorized');
         //}
 
-        const query = new Parse.Query(Parse.User);
+        let query = new Parse.Query(Parse.User);
 
         if (params.filter != '') {
             query.contains('email', params.filter);
         }
 
-        query.descending('createdAt');
-        query.limit(params.limit);
-        query.skip((params.page * params.limit) - params.limit);
+        query.descending('createdAt')
+             .limit(params.limit)
+             .skip((params.page * params.limit) - params.limit);
 
         return Parse.Promise.when(query.find({useMasterKey: true}), query.count({useMasterKey: true}));
-    })
-                                 .then((users, total) =>res.success({
-                                     users: users,
-                                     total: total
-                                 }), error=> res.error(error.message));
+    }).then((users, total) =>res.success({
+        users: users,
+        total: total
+    }), error=> res.error(error.message));
 
 }
 
@@ -102,6 +119,9 @@ function afterSave(req, res) {
             userData.set('status', user.get('status'));
             userData.set('username', user.get('username'));
             userData.set('photo', user.get('photo'));
+            userData.set('galleriesTotal', 0);
+            userData.set('followersTotal', 0);
+            userData.set('followingsTotal', 0);
         } else {
 
             const roleACL = new Parse.ACL();
@@ -109,20 +129,18 @@ function afterSave(req, res) {
             roleACL.setWriteAccess(user, true);
 
             userData = new Parse.Object('UserData', {
-                user    : user,
-                ACL     : roleACL,
-                name    : user.get('name'),
-                username: user.get('username'),
-                status  : user.get('status'),
-                photo   : user.get('photo'),
+                user           : user,
+                ACL            : roleACL,
+                name           : user.get('name'),
+                username       : user.get('username'),
+                status         : user.get('status'),
+                photo          : user.get('photo'),
+                galleriesTotal : 0,
+                followersTotal : 0,
+                followingsTotal: 0,
             });
         }
         userData.save(null, {useMasterKey: true});
-    });
-
-    GalleryActivity.create({
-        action: 'user enter',
-        user  : user
     });
 
     if (!user.existed()) {
@@ -132,12 +150,12 @@ function afterSave(req, res) {
             .equalTo('users', userRequesting)
             .first().then(function (isAdmin) {
 
-            //if (!isAdmin && user.get('roleName') === 'Admin') {
-            //    return Parse.Promise.error({
-            //        code   : 1,
-            //        message: 'Not Authorized'
-            //    });
-            //}
+            if (!isAdmin && user.get('roleName') === 'Admin') {
+                return Parse.Promise.error({
+                    code   : 1,
+                    message: 'Not Authorized'
+                });
+            }
 
             let roleName   = user.get('roleName') || 'User';
             let innerQuery = new Parse.Query(Parse.Role);
@@ -196,11 +214,11 @@ function getUsers(req, res, next) {
     var query  = new Parse.Query(Parse.Role);
     query.equalTo('name', 'Admin');
     query.equalTo('users', user);
-    query.first().then(function (adminRole) {
+    query.first().then(adminRole => {
 
-        //if (!adminRole) {
-        //    return res.error('Not Authorized');
-        //}
+        if (!adminRole) {
+            return res.error('Not Authorized');
+        }
 
         const query = new Parse.Query(Parse.User);
 
@@ -260,19 +278,19 @@ function destroyUser(req, res, next) {
     var params = req.params;
     var user   = req.user;
 
-    var query = new Parse.Query(Parse.Role);
-    query.equalTo('name', 'Admin');
-    query.equalTo('users', user);
-    query.first().then(function (adminRole) {
+    new Parse.Query(Parse.Role)
+        .equalTo('name', 'Admin')
+        .equalTo('users', user)
+        .first().then(adminRole=> {
 
         if (!adminRole) {
             return res.error('Not Authorized');
         }
 
-        var query = new Parse.Query(Parse.User);
-        query.equalTo('objectId', params.id);
-        return query.first({useMasterKey: true});
-    }).then(function (objUser) {
+        return new Parse.Query(Parse.User)
+            .equalTo('objectId', params.id)
+            .first({useMasterKey: true});
+    }).then(objUser=> {
 
         if (!objUser) {
             return res.error('User not found');
@@ -341,8 +359,9 @@ function validateEmail(req, res) {
 }
 
 
-function incrementGallery(userId) {
-    new Parse.Query('UserData').equalTo('user', userId).first().then(user => {
+function incrementGallery(user) {
+    new Parse.Query('UserData').equalTo('user', user).first().then(user => {
+        console.log('incrementGallery', user);
         user.increment('galleriesTotal');
         user.save(null, {useMasterKey: true})
             .then(success=>console.log('galleriesTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
@@ -350,25 +369,25 @@ function incrementGallery(userId) {
 }
 
 //seguidoes
-function incrementFollowers(userId) {
-    new Parse.Query('UserData').equalTo('user', userId).first().then(user => {
+function incrementFollowers(user) {
+    new Parse.Query('UserData').equalTo('user', user).first().then(user => {
         user.increment('followersTotal');
         user.save(null, {useMasterKey: true})
             .then(success=>console.log('followersTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
     });
 }
 //seguindo
-function incrementFollowing(userId) {
-    new Parse.Query('UserData').equalTo('user', userId).first().then(user => {
-        user.increment('followingTotal');
+function incrementFollowing(user) {
+    new Parse.Query('UserData').equalTo('user', user).first().then(user => {
+        user.increment('followingsTotal');
         user.save(null, {useMasterKey: true})
             .then(success=>console.log('followingTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
     });
 }
 
-function incrementComment(userId) {
-    new Parse.Query('UserData').equalTo('user', userId).first().then(user => {
-        user.increment('comemntTotal');
+function incrementComment(user) {
+    new Parse.Query('UserData').equalTo('user', user).first().then(user => {
+        user.increment('commentsTotal');
         user.save(null, {useMasterKey: true})
             .then(success=>console.log('comemntTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
     });

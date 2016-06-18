@@ -30,73 +30,67 @@ function afterDelete(req, res) {
 
 
 function beforeSave(req, res) {
-    const post = req.object;
-    const user = req.user || req.object.get('user');
-
-    //const isMasterKey = req.master;
-
-    //if (!gallery.existed()) {
-    //    var acl = new Parse.ACL();
-    //    acl.setPublicReadAccess(true);
-    //    acl.setRoleWriteAccess('Admin', true);
-    //    acl.setWriteAccess(user, true);
-    //    gallery.setACL(acl);
-    //}
-
-    //if (isMasterKey) {
-    //    return res.success();
-    //}
+    const gallery = req.object;
+    const user    = req.user || req.object.get('user');
 
     if (!user) {
         return res.error('Not Authorized');
     }
 
-    if (!post.get('image')) {
+    if (gallery.existed()) {
+        if (req.user != gallery.user) {
+            return res.error('Not Authorized');
+        }
+    }
+
+    if (!gallery.get('image')) {
         return res.error('Upload the first image');
     }
 
-    if (!post.get('title')) {
+    if (!gallery.get('title')) {
         return res.error('Need image title');
     }
 
-    if (!post.dirty('image')) {
+    if (!gallery.dirty('image')) {
         return res.success();
     }
     // Like
 
     //https://parse.com/docs/js/guide#performance-implement-efficient-searches
     let toLowerCase = w => w.toLowerCase();
-    var words       = post.get('title').split(/\b/);
+    var words       = gallery.get('title').split(/\b/);
     words           = _.map(words, toLowerCase);
     var stopWords   = ['the', 'in', 'and']
     words           = _.filter(words, w=> w.match(/^\w+$/) && !_.includes(stopWords, w));
-    var hashtags    = post.get('title').match(/#.+?\b/g);
+    var hashtags    = gallery.get('title').match(/#.+?\b/g);
     hashtags        = _.map(hashtags, toLowerCase)
 
-    post.set('words', words);
-    post.set('hashtags', hashtags);
+    gallery.set('words', words);
+    gallery.set('hashtags', hashtags);
 
-    // User by
-    post.set('user', user);
-
-    post.set('isApproved', true);
+    // Set default values
+    gallery.set('user', user);
+    gallery.set('isApproved', true);
+    gallery.set('followersTotal', 0);
+    gallery.set('followingsTotal', 0);
+    gallery.set('likesTotal', 0);
+    gallery.set('galleriesTotal', 0);
+    gallery.set('commentsTotal', 0);
 
     // Resize Image
-    var imageUrl = post.get('image').url();
+    var imageUrl = gallery.get('image').url();
 
-    Image.resize(imageUrl, 640, 640).then(function (base64) {
+    Image.resize(imageUrl, 640, 640).then(base64=> {
         return Image.saveImage(base64);
-    }).then(function (savedFile) {
-        post.set('image', savedFile);
+    }).then(savedFile=> {
+        gallery.set('image', savedFile);
         return Image.resize(imageUrl, 160, 160);
-    }).then(function (base64) {
+    }).then(base64=> {
         return Image.saveImage(base64);
-    }).then(function (savedFile) {
-        post.set('imageThumb', savedFile);
+    }).then(savedFile => {
+        gallery.set('imageThumb', savedFile);
         res.success();
-    }, function (error) {
-        res.error(error.message);
-    });
+    }, res.error);
 }
 
 function afterDelete(req, res) {
@@ -110,13 +104,10 @@ function afterDelete(req, res) {
         // Return a new promise that is resolved when all of the deletes are finished.
         return Parse.Promise.when(promises);
 
-    }).then({
-        success: res.success,
-        error  : req.error
-    });
+    }).then(res.success, req.error);
 }
 
-function afterSave(req, res) {
+function afterSave(req) {
     const user   = req.user;
     let activity = {
         action  : 'add photo',
@@ -124,15 +115,13 @@ function afterSave(req, res) {
         gallery : req.object
     };
     console.log(activity);
+    User.incrementGallery(user);
     GalleryActivity.create(activity);
-    User.incrementGallery(req.user);
 }
 
 function feed(req, res, next) {
     const _page  = req.params.page || 1;
     const _limit = req.params.limit || 10;
-
-    console.log('Start Feed', req.params);
 
     let _query = new Parse.Query(ParseObject);
 
@@ -140,57 +129,66 @@ function feed(req, res, next) {
         .equalTo('isApproved', true)
         .descending('createdAt')
         .limit(_limit)
-        .skip((_page * _limit) - _limit);
-
-    let queryFind  = _query.find();
-    let queryCount = _query.count();
-
-    new Parse.Promise.when(queryFind, queryCount)
-        .then((data, total)=> {
-            let _result = {
-                total: total,
-                rows : []
-            };
+        .skip((_page * _limit) - _limit)
+        .find()
+        .then(data=> {
+            let _result = [];
 
             if (!data.length) {
-                res.error(true);
+                res.success(_result);
             }
 
             let cb = _.after(data.length, ()=> {
                 res.success(_result);
             });
 
-            _.each(data, item=> {
+            _.each(data, itemGallery=> {
 
-                let userGet = item.get('user');
+                // User Data
+                let userGet = itemGallery.get('user');
                 new Parse.Query('UserData').equalTo('user', userGet).first().then(user=> {
 
                     let obj = {
-                        galleryObj   : item,
-                        createdAt    : item.get('createdAt'),
-                        image        : item.get('image'),
-                        imageThubm   : item.get('imageThubm'),
-                        title        : item.get('title'),
-                        commentsTotal: item.get('commentsTotal') || 0,
-                        likesTotal   : item.get('likesTotal') || 0,
+                        galleryObj   : itemGallery,
+                        createdAt    : itemGallery.get('createdAt'),
+                        image        : itemGallery.get('image'),
+                        imageThubm   : itemGallery.get('imageThumb'),
+                        title        : itemGallery.get('title'),
+                        commentsTotal: itemGallery.get('commentsTotal') || 0,
+                        likesTotal   : itemGallery.get('likesTotal') || 0,
                         user         : {
-                            userObj: user,
-                            id     : user.id,
-                            name   : user.get('name'),
-                            status : user.get('status'),
-                            photo  : user.get('photo')
+                            obj   : itemGallery.get('user'),
+                            name  : user.get('name'),
+                            status: user.get('status'),
+                            photo : user.get('photo')
                         }
                     };
                     console.log('Obj', obj);
 
-                    // Comments
-                    _result.rows.push(obj);
-                    cb();
+                    // Is Liked
+                    new Parse.Query('Gallery')
+                        .equalTo('likes', req.user)
+                        .equalTo('objectId', itemGallery.id)
+                        .first()
+                        .then(liked=> {
+                            obj.isLiked = liked ? true : false;
+
+                            // Comments
+                            new Parse.Query('GalleryComment')
+                                .equalTo('gallery', itemGallery)
+                                .limit(3)
+                                .find()
+                                .then(comments=> {
+                                    obj.comments = comments;
+                                    console.log('itemGallery', itemGallery, user, comments);
+                                    // Comments
+                                    _result.push(obj);
+                                    cb();
+
+                                }, error=> res.error(error.message));
+                        }, error=> res.error(error.message));
                 }, err=>console.log);
-
             });
-
-
         }, error=> res.error(error.message));
 }
 
@@ -199,38 +197,42 @@ function likeGallery(req, res, next) {
     const user      = req.user;
     const galleryId = req.params.galleryId;
 
-
     if (!user) {
         return res.error('Not Authorized');
     }
-    console.log('Like Gallery', user, galleryId);
 
-    var objGallery;
-    var response = {action: null};
+    let objParse;
+    let response = {action: null};
 
-    new Parse.Query('Gallery')
+    new Parse
+        .Query('Gallery')
         .get(galleryId)
         .then(gallery => {
+            objParse = gallery;
             return new Parse.Query('Gallery')
                 .equalTo('likes', user)
-                .equalTo('objectId', gallery)
+                .equalTo('objectId', galleryId)
                 .find();
-        })
-        .then(result => {
-            let relation = objGallery.relation('likes');
+        }).then(result => {
 
-            if (result.length > 0) {
-                objGallery.increment('likeCount', -1);
-                relation.remove(user);
-                response.action = 'unlike';
-            } else {
-                objGallery.increment('likeCount');
-                relation.add(user);
-                response.action = 'like';
-            }
-            return objGallery.save(null, {useMasterKey: true});
-        })
-        .then(() =>res.success(response), error=> res.error(error.message));
+        var relation = objParse.relation('likes');
+
+        if (result.length > 0) {
+            objParse.increment('likesTotal', -1);
+            relation.remove(user);
+            response.action = 'unlike';
+        } else {
+            objParse.increment('likesTotal');
+            relation.add(user);
+            response.action = 'like';
+        }
+
+        return objParse.save(null, {useMasterKey: true});
+    }).then(() => {
+        res.success(response);
+    }, error=> {
+        res.error(error.message);
+    });
 }
 
 function isGalleryLiked(req, res, next) {
@@ -241,11 +243,10 @@ function isGalleryLiked(req, res, next) {
         return res.error('Not Authorized');
     }
 
-    var query = new Parse.Query('Gallery');
-    query.equalTo('likes', user);
-    query.equalTo('objectId', galleryId);
-
-    query.first({useMasterKey: true})
-         .then(gallery=>res.success(gallery ? true : false), error=> res.error(error.message));
+    new Parse.Query('Gallery')
+        .equalTo('likes', user)
+        .equalTo('objectId', galleryId)
+        .first({useMasterKey: true})
+        .then(gallery=>res.success(gallery ? true : false), error=> res.error(error.message));
 }
 

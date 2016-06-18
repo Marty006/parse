@@ -4,92 +4,10 @@ const User        = require('./../class/User');
 const ParseObject = Parse.Object.extend('GalleryActivity');
 
 module.exports = {
-    beforeSave: beforeSave,
-    afterSave : afterSave,
-    create    : create,
-    feed      : feed,
+    afterSave: afterSave,
+    create   : create,
+    feed     : feed,
 };
-
-
-function feed(req, res, next) {
-    const _page  = req.params.page || 1;
-    const _limit = req.params.limit || 10;
-
-    console.log('Start Feed', req.params);
-
-    let _query = new Parse.Query(ParseObject);
-
-    _query
-        .descending('createdAt')
-        .include('gallery')
-        .limit(_limit)
-        .skip((_page * _limit) - _limit);
-
-    let queryFind  = _query.find();
-    let queryCount = _query.count();
-
-    new Parse.Promise.when(queryFind, queryCount)
-        .then((data, total)=> {
-            let _result = {
-                total: total,
-                rows : []
-            };
-
-            if (!data.length) {
-                res.error(true);
-            }
-
-            let cb = _.after(data.length, ()=> res.success(_result));
-
-            _.each(data, item=> {
-
-                let userGet = item.get('fromUser');
-                new Parse.Query('UserData').equalTo('user', userGet).first().then(user=> {
-
-                    let obj = {
-                        obj      : item,
-                        createdAt: item.get('createdAt'),
-                        gallery  : item.get('gallery'),
-                        action   : item.get('action')
-                    };
-                    if (user) {
-                        obj.user = {
-                            userObj: user,
-                            id     : user.id,
-                            name   : user.get('name') || user.get('username') || user.get('email'),
-                            status : user.get('status'),
-                            photo  : user.get('photo')
-                        }
-                    }
-                    console.log('Obj', obj);
-
-                    _result.rows.push(obj);
-                    cb();
-                }, err=>console.log);
-
-            });
-
-
-        }, error=> res.error(error.message));
-}
-
-function beforeSave(req, res) {
-    const currentUser = req.user;
-    const objectUser  = req.object.get('fromUser');
-    const gallery     = req.object.get('gallery');
-
-    if (gallery) {
-        req.object.set('toUser', gallery.user);
-    }
-
-    if (!currentUser || !objectUser) {
-        response.error('An Activity should have a valid fromUser.');
-    } else if (currentUser.id === objectUser.id) {
-        res.success();
-    } else {
-        res.error('Cannot set fromUser on Activity to a user other than the current user.');
-    }
-}
 
 function afterSave(req, res) {
     if (req.object.existed()) {
@@ -176,22 +94,90 @@ function alertMessage(req) {
 }
 function create(obj, acl) {
 
-    let gallery = new ParseObject()
+    let newActivity = new ParseObject()
         .set('action', obj.action)
         .set('isApproved', true)
         .set('fromUser', obj.fromUser);
+    
 
-    if (obj.toUser) {
-        gallery.set('toUser', obj.user)
+    if (acl) {
+        newActivity.setACL(acl);
     }
 
     if (obj.gallery) {
-        gallery.set('gallery', obj.gallery);
+        newActivity.set('gallery', obj.gallery);
+        new Parse.Query('Gallery').include('user').equalTo('objectId', obj.gallery.id).first().then(gallery=> {
+
+            newActivity.set('toUser', gallery.get('user'))
+                       .save(null, {useMasterKey: true})
+                       .then(success=>console.log('comemntTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
+        })
+
+    } else {
+        newActivity.save(null, {useMasterKey: true})
+                   .then(success=>console.log('comemntTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
     }
 
-    if (acl) {
-        gallery.setACL(acl);
-    }
 
-    return gallery.save();
+}
+
+function feed(req, res, next) {
+    const _page  = req.params.page || 1;
+    const _limit = req.params.limit || 10;
+
+    console.log('Start feed', req.params);
+
+    let _query = new Parse.Query(ParseObject);
+
+    _query
+        .descending('createdAt')
+        .limit(_limit)
+        .include('gallery')
+        .skip((_page * _limit) - _limit)
+        .find()
+        .then(data=> {
+            let _result = [];
+
+            console.log(data);
+
+            if (!data.length) {
+                res.success(_result);
+            }
+
+            let cb = _.after(data.length, ()=> {
+                res.success(_result);
+            });
+
+            _.each(data, item=> {
+
+                let userGet = item.get('fromUser');
+                new Parse.Query('UserData').equalTo('user', userGet).first().then(user=> {
+
+                    let obj = {
+                        item     : item,
+                        action   : item.get('action'),
+                        createdAt: item.get('createdAt'),
+                    };
+
+                    if (user) {
+                        obj.user = {
+                            userObj: user,
+                            id     : user.id,
+                            name   : user.get('name'),
+                            status : user.get('status'),
+                            photo  : user.get('photo')
+                        }
+                    }
+
+                    console.log('Obj', obj);
+
+                    // Comments
+                    _result.push(obj);
+                    cb();
+                }, err=>console.log);
+
+            });
+
+
+        }, error=> res.error(error.message));
 }
