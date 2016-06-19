@@ -35,7 +35,7 @@ function afterSave(req, res) {
     const comment = req.object;
 
     let activity = {
-        action  : 'comment photo',
+        action  : 'photoCommented',
         fromUser: req.user,
         gallery : comment.get('gallery')
     };

@@ -98,7 +98,7 @@ function create(obj, acl) {
         .set('action', obj.action)
         .set('isApproved', true)
         .set('fromUser', obj.fromUser);
-    
+
 
     if (acl) {
         newActivity.setACL(acl);
@@ -108,14 +108,11 @@ function create(obj, acl) {
         newActivity.set('gallery', obj.gallery);
         new Parse.Query('Gallery').include('user').equalTo('objectId', obj.gallery.id).first().then(gallery=> {
 
-            newActivity.set('toUser', gallery.get('user'))
-                       .save(null, {useMasterKey: true})
-                       .then(success=>console.log('comemntTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
+            return newActivity.set('toUser', gallery.get('user')).save(null, {useMasterKey: true});
         })
 
     } else {
-        newActivity.save(null, {useMasterKey: true})
-                   .then(success=>console.log('comemntTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
+        return newActivity.save(null, {useMasterKey: true});
     }
 
 
@@ -153,6 +150,7 @@ function feed(req, res, next) {
                 let userGet = item.get('fromUser');
                 new Parse.Query('UserData').equalTo('user', userGet).first().then(user=> {
 
+                    console.log('User', user);
                     let obj = {
                         item     : item,
                         action   : item.get('action'),

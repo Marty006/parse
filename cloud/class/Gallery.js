@@ -10,6 +10,7 @@ module.exports = {
     afterSave     : afterSave,
     afterDelete   : afterDelete,
     feed          : feed,
+    commentGallery: commentGallery,
     isGalleryLiked: isGalleryLiked,
     likeGallery   : likeGallery,
 };
@@ -108,9 +109,14 @@ function afterDelete(req, res) {
 }
 
 function afterSave(req) {
-    const user   = req.user;
+    const user = req.user;
+
+    if (req.object.existed()) {
+        return
+    }
+
     let activity = {
-        action  : 'add photo',
+        action  : 'addPhoto',
         fromUser: user,
         gallery : req.object
     };
@@ -119,11 +125,77 @@ function afterSave(req) {
     GalleryActivity.create(activity);
 }
 
-function feed(req, res, next) {
+function commentGallery(req, res) {
+    const params = req.params;
     const _page  = req.params.page || 1;
     const _limit = req.params.limit || 10;
 
+    new Parse.Query(ParseObject)
+        .equalTo('objectId', params.galleryId)
+        .first()
+        .then(gallery=> {
+
+            new Parse.Query('GalleryComment')
+                .equalTo('gallery', gallery)
+                .limit(_limit)
+                .skip((_page * _limit) - _limit)
+                .find()
+                .then(data=> {
+                    let _result = [];
+
+                    if (!data.length) {
+                        res.success(_result);
+                    }
+
+                    let cb = _.after(data.length, ()=> {
+                        res.success(_result);
+                    });
+
+                    _.each(data, itemComment=> {
+
+                        // User Data
+                        let userGet = itemComment.get('user');
+                        new Parse.Query('UserData').equalTo('user', userGet).first().then(user=> {
+
+                            let obj = {
+                                object   : itemComment,
+                                id       : itemComment.id,
+                                createdAt: itemComment.get('createdAt'),
+                                text     : itemComment.get('text'),
+                                user     : {
+                                    obj     : itemComment.get('user'),
+                                    username: user.get('username'),
+                                    name    : user.get('name'),
+                                    status  : user.get('status'),
+                                    photo   : user.get('photo')
+                                }
+                            };
+                            console.log('Obj', obj);
+
+                            _result.push(obj);
+                            cb();
+                        }, err=>console.log);
+                    });
+                }, error=> res.error(error.message))
+        })
+    ;
+}
+
+
+function feed(req, res, next) {
+    const params = req.params;
+    const _page  = req.params.page || 1;
+    const _limit = req.params.limit || 24;
+
     let _query = new Parse.Query(ParseObject);
+
+    if (params.filter) {
+        _query.contains('words', params.filter);
+    }
+
+    if (params.hashtags) {
+        _query.containsAll("hashtags", [params.hashtags]);
+    }
 
     _query
         .equalTo('isApproved', true)
@@ -149,18 +221,21 @@ function feed(req, res, next) {
                 new Parse.Query('UserData').equalTo('user', userGet).first().then(user=> {
 
                     let obj = {
+                        id           : itemGallery.id,
                         galleryObj   : itemGallery,
+                        comments     : [],
                         createdAt    : itemGallery.get('createdAt'),
                         image        : itemGallery.get('image'),
-                        imageThubm   : itemGallery.get('imageThumb'),
+                        imageThumb   : itemGallery.get('imageThumb'),
                         title        : itemGallery.get('title'),
                         commentsTotal: itemGallery.get('commentsTotal') || 0,
                         likesTotal   : itemGallery.get('likesTotal') || 0,
                         user         : {
-                            obj   : itemGallery.get('user'),
-                            name  : user.get('name'),
-                            status: user.get('status'),
-                            photo : user.get('photo')
+                            obj     : itemGallery.get('user'),
+                            name    : user.get('name'),
+                            username: user.get('username'),
+                            status  : user.get('status'),
+                            photo   : user.get('photo')
                         }
                     };
                     console.log('Obj', obj);
@@ -179,7 +254,14 @@ function feed(req, res, next) {
                                 .limit(3)
                                 .find()
                                 .then(comments=> {
-                                    obj.comments = comments;
+                                    comments.map(function (comment) {
+                                        obj.comments.push({
+                                            id  : comment.id,
+                                            obj : comment,
+                                            user: comment.get('user'),
+                                            text: comment.get('text'),
+                                        })
+                                    });
                                     console.log('itemGallery', itemGallery, user, comments);
                                     // Comments
                                     _result.push(obj);
@@ -204,18 +286,16 @@ function likeGallery(req, res, next) {
     let objParse;
     let response = {action: null};
 
-    new Parse
-        .Query('Gallery')
-        .get(galleryId)
-        .then(gallery => {
-            objParse = gallery;
-            return new Parse.Query('Gallery')
-                .equalTo('likes', user)
-                .equalTo('objectId', galleryId)
-                .find();
-        }).then(result => {
+    new Parse.Query('Gallery').get(galleryId).then(gallery => {
+        objParse = gallery;
+        return new Parse.Query('Gallery')
+            .equalTo('likes', user)
+            .equalTo('objectId', galleryId)
+            .find();
+    }).then(result => {
 
-        var relation = objParse.relation('likes');
+
+        let relation = objParse.relation('likes');
 
         if (result.length > 0) {
             objParse.increment('likesTotal', -1);
@@ -227,9 +307,18 @@ function likeGallery(req, res, next) {
             response.action = 'like';
         }
 
-        return objParse.save(null, {useMasterKey: true});
-    }).then(() => {
-        res.success(response);
+        let activity = {
+            fromUser: user,
+            gallery : objParse,
+            action  : response.action
+        };
+
+        return Parse.Promise.when([
+            GalleryActivity.create(activity),
+            objParse.save(null, {useMasterKey: true})
+        ]);
+    }).then(data => {
+        console.log('response', data, res.success(response));
     }, error=> {
         res.error(error.message);
     });
