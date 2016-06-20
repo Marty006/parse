@@ -197,81 +197,100 @@ function feed(req, res, next) {
         _query.containsAll("hashtags", [params.hashtags]);
     }
 
-    _query
-        .equalTo('isApproved', true)
-        .descending('createdAt')
-        .limit(_limit)
-        .skip((_page * _limit) - _limit)
-        .find()
-        .then(data=> {
-            let _result = [];
 
-            if (!data.length) {
-                res.success(_result);
-            }
-
-            let cb = _.after(data.length, ()=> {
-                res.success(_result);
+    // if set username, find gallery by user
+    if (params.username) {
+        new Parse.Query(Parse.User)
+            .equalTo('username', params.username)
+            .first({useMasterKey: true})
+            .then(user=> {
+                _query.equalTo('user', user);
+                runQuery();
+            }, error=> {
+                runQuery();
             });
+    } else {
+        runQuery();
+    }
 
-            _.each(data, itemGallery=> {
 
-                // User Data
-                let userGet = itemGallery.get('user');
-                new Parse.Query('UserData').equalTo('user', userGet).first().then(user=> {
+    function runQuery() {
+        _query
+            .equalTo('isApproved', true)
+            .descending('createdAt')
+            .limit(_limit)
+            .skip((_page * _limit) - _limit)
+            .find()
+            .then(data=> {
+                let _result = [];
 
-                    let obj = {
-                        id           : itemGallery.id,
-                        galleryObj   : itemGallery,
-                        comments     : [],
-                        createdAt    : itemGallery.get('createdAt'),
-                        image        : itemGallery.get('image'),
-                        imageThumb   : itemGallery.get('imageThumb'),
-                        title        : itemGallery.get('title'),
-                        commentsTotal: itemGallery.get('commentsTotal') || 0,
-                        likesTotal   : itemGallery.get('likesTotal') || 0,
-                        user         : {
-                            obj     : itemGallery.get('user'),
-                            name    : user.get('name'),
-                            username: user.get('username'),
-                            status  : user.get('status'),
-                            photo   : user.get('photo')
-                        }
-                    };
-                    console.log('Obj', obj);
+                if (!data.length) {
+                    res.success(_result);
+                }
 
-                    // Is Liked
-                    new Parse.Query('Gallery')
-                        .equalTo('likes', req.user)
-                        .equalTo('objectId', itemGallery.id)
-                        .first()
-                        .then(liked=> {
-                            obj.isLiked = liked ? true : false;
+                let cb = _.after(data.length, ()=> {
+                    res.success(_result);
+                });
 
-                            // Comments
-                            new Parse.Query('GalleryComment')
-                                .equalTo('gallery', itemGallery)
-                                .limit(3)
-                                .find()
-                                .then(comments=> {
-                                    comments.map(function (comment) {
-                                        obj.comments.push({
-                                            id  : comment.id,
-                                            obj : comment,
-                                            user: comment.get('user'),
-                                            text: comment.get('text'),
-                                        })
-                                    });
-                                    console.log('itemGallery', itemGallery, user, comments);
-                                    // Comments
-                                    _result.push(obj);
-                                    cb();
+                _.each(data, itemGallery=> {
 
-                                }, error=> res.error(error.message));
-                        }, error=> res.error(error.message));
-                }, err=>console.log);
-            });
-        }, error=> res.error(error.message));
+                    // User Data
+                    let userGet = itemGallery.get('user');
+                    new Parse.Query('UserData').equalTo('user', userGet).first().then(user=> {
+
+                        let obj = {
+                            id           : itemGallery.id,
+                            galleryObj   : itemGallery,
+                            comments     : [],
+                            createdAt    : itemGallery.get('createdAt'),
+                            image        : itemGallery.get('image'),
+                            imageThumb   : itemGallery.get('imageThumb'),
+                            title        : itemGallery.get('title'),
+                            commentsTotal: itemGallery.get('commentsTotal') || 0,
+                            likesTotal   : itemGallery.get('likesTotal') || 0,
+                            user         : {
+                                obj     : itemGallery.get('user'),
+                                name    : user.get('name'),
+                                username: user.get('username'),
+                                status  : user.get('status'),
+                                photo   : user.get('photo')
+                            }
+                        };
+                        //console.log('Obj', obj);
+
+                        // Is Liked
+                        new Parse.Query('Gallery')
+                            .equalTo('likes', req.user)
+                            .equalTo('objectId', itemGallery.id)
+                            .first()
+                            .then(liked=> {
+                                obj.isLiked = liked ? true : false;
+
+                                // Comments
+                                new Parse.Query('GalleryComment')
+                                    .equalTo('gallery', itemGallery)
+                                    .limit(3)
+                                    .find()
+                                    .then(comments=> {
+                                        comments.map(function (comment) {
+                                            obj.comments.push({
+                                                id  : comment.id,
+                                                obj : comment,
+                                                user: comment.get('user'),
+                                                text: comment.get('text'),
+                                            })
+                                        });
+                                        //console.log('itemGallery', itemGallery, user, comments);
+                                        // Comments
+                                        _result.push(obj);
+                                        cb();
+
+                                    }, error=> res.error(error.message));
+                            }, error=> res.error(error.message));
+                    }, err=>console.log);
+                });
+            }, error=> res.error(error.message))
+    }
 }
 
 
