@@ -11,6 +11,7 @@ module.exports        = {
     get                : get,
     createUser         : createUser,
     findUserByEmail    : findUserByEmail,
+    findUserByUsername : findUserByUsername,
     getUsers           : getUsers,
     updateUser         : updateUser,
     destroyUser        : destroyUser,
@@ -202,10 +203,23 @@ function createUser(req, res, next) {
     }, error=> res.error(error.message));
 }
 
+function findUserByUsername(req, res, next) {
+    new Parse.Query(Parse.User)
+        .equalTo('username', req.params.username)
+        .first({useMasterKey: true})
+        .then(user => {
+            new Parse.Query('UserData')
+                .equalTo('user', user)
+                .first()
+                .then(userdata=> res.success(userdata || {}), error=>res.error);
+        }, error=> res.error(error.message));
+}
+
 function findUserByEmail(req, res, next) {
-    const query = new Parse.Query(Parse.User);
-    query.equalTo('email', req.params.email);
-    query.first({useMasterKey: true}).then(results => res.success(results || {}), error=> res.error(error.message));
+    new Parse.Query(Parse.User)
+        .equalTo('email', req.params.email)
+        .first({useMasterKey: true})
+        .then(results => res.success(results || {}), error=> res.error(error.message));
 }
 
 function getUsers(req, res, next) {
