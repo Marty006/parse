@@ -1,5 +1,6 @@
 'use strict';
 const express              = require('express');
+const cors                 = require('cors');
 const ParseServer          = require('parse-server').ParseServer;
 const S3Adapter            = require('parse-server').S3Adapter;
 const ParseDashboard       = require('parse-dashboard');
@@ -31,7 +32,7 @@ if (!databaseUri) {
 }
 
 const api = new ParseServer({
-    databaseURI     : databaseUri || 'mongodb://localhost:27017/dev',
+    databaseURI     : databaseUri || 'mongodb://localhost:27017/photogram',
     cloud           : './cloud/main.js',
     appId           : appId,
     masterKey       : masterKey,
@@ -92,6 +93,9 @@ const dashboard = new ParseDashboard({
 }, true);
 
 const app = express();
+
+// Cors
+app.use(cors());
 
 // Public Folder
 app.use('/', express.static(path.join(__dirname, '/www')));
