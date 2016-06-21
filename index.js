@@ -91,19 +91,12 @@ const dashboard = new ParseDashboard({
             appId    : appId,
             masterKey: masterKey,
             iconName : 'icon.png'
-        },
-        {
-            appName  : 'Photogram Production',
-            serverURL: 'https://photogramserver.herokuapp.com/parse',
-            appId    : 'myAppId',
-            masterKey: 'PhotogramKey123',
-            iconName : 'icon.png'
         }
     ],
     users      : [
         {
             user: 'admin', // Used to log in to your Parse Dashboard
-            pass: 'photogram123'
+            pass: 'admin123'
         }
     ],
     iconsFolder: 'www/assets/images'
