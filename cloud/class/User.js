@@ -343,33 +343,31 @@ function saveFacebookPicture(req, res, next) {
 }
 
 function validateUsername(req, res) {
-    new ParseObject()
-        .equalTo('username', req.params.input)
-        .count({
-            success: res.error,
-            error  : res.success
-        })
+    new Parse.Query(Parse.User)
+        .equalTo('username', req.params.username)
+        .first({useMasterKey: true})
+        .then(count=> {
+            console.log('validateUsername', count);
+            if (count) {
+                res.error(false);
+            } else {
+                res.success(true);
+            }
+        }, res.error)
 }
 
 function validateEmail(req, res) {
-    console.log(req);
-    console.log(req.params.input.trim());
     new Parse.Query(Parse.User)
-        .contains('email', req.params.input.trim())
-        //.count()
-        .find({
-            success: function (data) {
-                console.log(data);
-                if (data > 0) {
-                    res.success(false);
-                } else {
-                    res.success(true);
-                }
-            },
-            error  : function () {
-                res.success(true)
+        .equalTo('email', req.params.email)
+        .first({useMasterKey: true})
+        .then(count=> {
+            console.log('validateEmail', count);
+            if (count) {
+                res.error(false);
+            } else {
+                res.success(true);
             }
-        })
+        }, res.error)
 }
 
 
