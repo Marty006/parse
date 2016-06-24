@@ -34,3 +34,6 @@ node_modules
 .idea/server.iml
 .idea/watcherTasks.xml
 .idea/libraries/server_node_modules.xml
+.idea/.name
+.idea/codeStyleSettings.xml
+.idea/Photogram server.iml

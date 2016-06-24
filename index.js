@@ -4,6 +4,9 @@ const cors           = require('cors');
 const ParseServer    = require('parse-server').ParseServer;
 const ParseDashboard = require('parse-dashboard');
 const path           = require('path');
+
+// Jade
+const expressLayouts = require('express-ejs-layouts');
 // Parse configuration
 const port           = process.env.PORT || 1337;
 // MongoDB
@@ -107,8 +110,18 @@ const app = express();
 // Cors
 app.use(cors());
 
-// Public Folder
-app.use('/', express.static(path.join(__dirname, '/www')));
+// EJS Template
+app.set('view engine', 'ejs');
+app.use(express.static('views'));
+app.use((req, res, next) => {
+    res.locals.appId     = appId;
+    res.locals.serverUrl = serverUrl;
+    next();
+});
+
+app.get('/', function (req, res) {
+    res.render('index');
+});
 
 // Serve the Parse API on the /parse URL prefix
 const mountPath = process.env.PARSE_MOUNT || '/parse';
