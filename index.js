@@ -102,7 +102,7 @@ const dashboard = new ParseDashboard({
             pass: 'admin123'
         }
     ],
-    iconsFolder: 'www/assets/images'
+    iconsFolder: 'views/assets/images'
 }, true);
 
 const app = express();
