@@ -1,40 +1,42 @@
 'use strict';
 const GallerySetting = require('../class/GallerySetting');
 
-module.exports       = {
+module.exports = {
     status: status,
     start : start
 };
 
 function status(req, res, next) {
     console.log(req.params);
-    var query = new Parse.Query(Parse.Role);
-    query.equalTo('name', 'Admin');
-    query.first()
-         .then(adminRole=> {
-             if (!adminRole) {
-                 return res.error('Admin Role not found');
-             }
+    new Parse.Query(Parse.Role)
+        .equalTo('name', 'Admin')
+        .first({useMasterKey: true})
+        .then(adminRole=> {
 
-             let userRelation = adminRole.relation('users');
-             return userRelation.query().count({useMasterKey: true});
-         })
-         .then(count=> {
-             if (count === 0) {
-                 return res.success('Its installed');
-             } else {
-                 req.session = null;
-                 return res.error('Admin Role not found');
-             }
-         }, error=> {
-             if (error.code === 5000) {
-                 // next();
-                 return res.success('Its installed');
-             } else {
-                 req.session = null;
-                 return res.error('Admin Role not found');
-             }
-         });
+            console.log(adminRole);
+            if (!adminRole) {
+                return res.success('Admin Role not found');
+            }
+
+            let userRelation = adminRole.relation('users');
+            return userRelation.query().count({useMasterKey: true});
+        })
+        .then(count=> {
+            if (count > 0) {
+                return res.error('Its installed');
+            } else {
+                req.session = null;
+                return res.success('Admin Role not found');
+            }
+        }, error=> {
+            if (error.code === 5000) {
+                // next();
+                return res.error('Its installed');
+            } else {
+                req.session = null;
+                return res.success('Admin Role not found');
+            }
+        });
 }
 
 function start(req, res, next) {
