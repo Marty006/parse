@@ -131,7 +131,7 @@ function feed(req, res, next) {
         .limit(_limit)
         .include('gallery')
         .skip((_page * _limit) - _limit)
-        .find()
+        .find({useMasterKey: true})
         .then(data=> {
             let _result = [];
 
