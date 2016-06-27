@@ -187,7 +187,7 @@ function createUser(req, res, next) {
 
             new Parse.User()
                 .set('name', data.name)
-                .set('username', data.email)
+                .set('username', data.username)
                 .set('email', data.email)
                 .set('gender', data.password)
                 .set('password', data.password)
@@ -211,7 +211,13 @@ function findUserByUsername(req, res, next) {
             new Parse.Query('UserData')
                 .equalTo('user', user)
                 .first()
-                .then(userdata=> res.success(userdata || {}), error=>res.error);
+                .then(userdata=> {
+                    if (userdata) {
+                        res.success(userdata);
+                    } else {
+                        res.error(false);
+                    }
+                }, error=>res.error);
         }, error=> res.error(error.message));
 }
 
@@ -321,12 +327,18 @@ function saveFacebookPicture(req, res, next) {
         return res.error('Not Authorized');
     }
 
-    var authData = user.get('authData');
-    if (!authData) {
-        return res.success();
+    if(user.attributes.photo.length) {
+        return res.success('Photo user')
     }
 
-    var profilePictureUrl = 'https://graph.facebook.com/' + authData.facebook.id + '/picture';
+    let facebook = user.attributes.facebook;
+
+
+    if (!facebook) {
+        return res.error('Not logged with facebook');
+    }
+
+    let profilePictureUrl = 'https://graph.facebook.com/' + facebook+ '/picture';
 
     return Parse.Cloud.httpRequest({
         url            : profilePictureUrl,
