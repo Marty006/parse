@@ -39,7 +39,7 @@ function beforeSave(req, res) {
     }
 
     if (gallery.existed()) {
-        if (req.user != gallery.user) {
+        if (!req.user ) {
             return res.error('Not Authorized');
         }
     }
@@ -139,7 +139,7 @@ function commentGallery(req, res) {
                 .equalTo('gallery', gallery)
                 .limit(_limit)
                 .skip((_page * _limit) - _limit)
-                .find()
+                .find({useMasterKey: true})
                 .then(data=> {
                     let _result = [];
 
@@ -236,7 +236,7 @@ function feed(req, res, next) {
 
                     // User Data
                     let userGet = itemGallery.get('user');
-                    new Parse.Query('UserData').equalTo('user', userGet).first().then(user=> {
+                    new Parse.Query('UserData').equalTo('user', userGet).first({useMasterKey: true}).then(user=> {
 
                         let obj = {
                             id           : itemGallery.id,
@@ -248,6 +248,7 @@ function feed(req, res, next) {
                             title        : itemGallery.get('title'),
                             commentsTotal: itemGallery.get('commentsTotal') || 0,
                             likesTotal   : itemGallery.get('likesTotal') || 0,
+                            isApproved   : itemGallery.get('isApproved'),
                             user         : {
                                 obj     : itemGallery.get('user'),
                                 name    : user.get('name'),
@@ -262,7 +263,7 @@ function feed(req, res, next) {
                         new Parse.Query('Gallery')
                             .equalTo('likes', req.user)
                             .equalTo('objectId', itemGallery.id)
-                            .first()
+                            .first({useMasterKey: true})
                             .then(liked=> {
                                 obj.isLiked = liked ? true : false;
 
@@ -270,13 +271,19 @@ function feed(req, res, next) {
                                 new Parse.Query('GalleryComment')
                                     .equalTo('gallery', itemGallery)
                                     .limit(3)
-                                    .find()
+                                    .find({useMasterKey: true})
                                     .then(comments=> {
                                         comments.map(function (comment) {
                                             obj.comments.push({
                                                 id  : comment.id,
                                                 obj : comment,
-                                                user: comment.get('user'),
+                                                user         : {
+                                                    obj     : itemGallery.get('user'),
+                                                    name    : user.get('name'),
+                                                    username: user.get('username'),
+                                                    status  : user.get('status'),
+                                                    photo   : user.get('photo')
+                                                },
                                                 text: comment.get('text'),
                                             })
                                         });
@@ -310,7 +317,7 @@ function likeGallery(req, res, next) {
         return new Parse.Query('Gallery')
             .equalTo('likes', user)
             .equalTo('objectId', galleryId)
-            .find();
+            .find({useMasterKey: true});
     }).then(result => {
 
 
