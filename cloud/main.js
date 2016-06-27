@@ -5,6 +5,7 @@ const Gallery         = require('./class/Gallery');
 const GalleryActivity = require('./class/GalleryActivity');
 const GalleryComment  = require('./class/GalleryComment');
 const Installation    = require('./class/Installation');
+const Dashboard       = require('./class/Dashboard');
 
 
 // Instalattion
@@ -15,10 +16,10 @@ Parse.Cloud.define('status', Install.status);
 Parse.Cloud.define('install', Install.start);
 
 // Admin Dashboard
+Parse.Cloud.define('dashboard', Dashboard.home)
 
 // GalleryActivity
 Parse.Cloud.define('feedActivity', GalleryActivity.feed);
-//Parse.Cloud.afterSave('GalleryActivity', GalleryActivity.afterSave);
 
 // User
 Parse.Cloud.beforeSave(Parse.User, User.beforeSave);
