@@ -41,6 +41,7 @@ function status(req, res, next) {
 
 function start(req, res, next) {
     let name                 = req.params.name ? req.params.name.trim() : null;
+    let email                = req.params.email ? req.params.email.toLowerCase().trim() : null;
     let username             = req.params.username ? req.params.username.toLowerCase().trim() : null;
     let password             = req.params.password ? req.params.password.trim() : 'null';
     let passwordConfirmation = req.params.passwordConfirmation ? req.params.passwordConfirmation.trim() : '';
@@ -49,8 +50,12 @@ function start(req, res, next) {
         return res.error('Name is required');
     }
 
-    if (!username) {
+    if (!email) {
         return res.error('Email is required');
+    }
+
+    if (!username) {
+        return res.error('Username is required');
     }
 
     if (password !== passwordConfirmation) {
@@ -73,8 +78,8 @@ function start(req, res, next) {
 
     let user = new Parse.User();
     user.set('name', name);
+    user.set('email', email);
     user.set('username', username);
-    user.set('email', username);
     user.set('password', password);
     user.set('roleName', 'Admin');
     user.set('gender', 'man');
