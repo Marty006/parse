@@ -38,11 +38,11 @@ function beforeSave(req, res) {
         return res.error('Not Authorized');
     }
 
-    if (gallery.existed()) {
-        if (!req.user ) {
-            return res.error('Not Authorized');
-        }
-    }
+    //if (gallery.existed()) {
+    //    if (!req.user) {
+    //        return res.error('Not Authorized');
+    //    }
+    //}
 
     if (!gallery.get('image')) {
         return res.error('Upload the first image');
@@ -81,6 +81,7 @@ function beforeSave(req, res) {
     // Resize Image
     var imageUrl = gallery.get('image').url();
 
+    console.log('Resize image', imageUrl);
     Image.resize(imageUrl, 640, 640).then(base64=> {
         return Image.saveImage(base64);
     }).then(savedFile=> {
@@ -277,7 +278,7 @@ function feed(req, res, next) {
                                             obj.comments.push({
                                                 id  : comment.id,
                                                 obj : comment,
-                                                user         : {
+                                                user: {
                                                     obj     : itemGallery.get('user'),
                                                     name    : user.get('name'),
                                                     username: user.get('username'),
@@ -310,6 +311,7 @@ function likeGallery(req, res, next) {
     }
 
     let objParse;
+    let activity;
     let response = {action: null};
 
     new Parse.Query('Gallery').get(galleryId).then(gallery => {
@@ -317,13 +319,16 @@ function likeGallery(req, res, next) {
         return new Parse.Query('Gallery')
             .equalTo('likes', user)
             .equalTo('objectId', galleryId)
-            .find({useMasterKey: true});
+            .find();
     }).then(result => {
 
-
+        console.log('step1', result);
         let relation = objParse.relation('likes');
 
-        if (result.length > 0) {
+        console.log('step2', relation);
+        console.log('step3', relation.length);
+
+        if (result && result.length > 0) {
             objParse.increment('likesTotal', -1);
             relation.remove(user);
             response.action = 'unlike';
@@ -333,21 +338,20 @@ function likeGallery(req, res, next) {
             response.action = 'like';
         }
 
-        let activity = {
+        activity = {
             fromUser: user,
             gallery : objParse,
             action  : response.action
         };
 
-        return Parse.Promise.when([
-            GalleryActivity.create(activity),
-            objParse.save(null, {useMasterKey: true})
-        ]);
+        console.log('step4', activity);
+
+        return objParse.save(null, {useMasterKey: true});
+
     }).then(data => {
-        console.log('response', data, res.success(response));
-    }, error=> {
-        res.error(error.message);
-    });
+        GalleryActivity.create(activity);
+        res.success(response);
+    }, error=> res.error);
 }
 
 function isGalleryLiked(req, res, next) {
