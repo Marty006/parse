@@ -29,6 +29,7 @@ Parse.Cloud.afterSave(Parse.User, User.afterSave);
 Parse.Cloud.define('findUserByUsername', User.findUserByUsername);
 Parse.Cloud.define('findUserByEmail', User.findUserByEmail);
 Parse.Cloud.define('profile', User.profile);
+Parse.Cloud.define('followUser', User.follow);
 Parse.Cloud.define('getUsers', User.getUsers);
 Parse.Cloud.define('createUser', User.createUser);
 Parse.Cloud.define('updateUser', User.updateUser);

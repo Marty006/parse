@@ -99,6 +99,10 @@ function create(obj, acl) {
         .set('isApproved', true)
         .set('fromUser', obj.fromUser);
 
+    if (obj.toUser) {
+        newActivity.set('toUser', obj.toUser);
+    }
+
 
     if (acl) {
         newActivity.setACL(acl);
@@ -107,9 +111,8 @@ function create(obj, acl) {
     if (obj.gallery) {
         newActivity.set('gallery', obj.gallery);
         new Parse.Query('Gallery').include('user').equalTo('objectId', obj.gallery.id).first().then(gallery=> {
-
             return newActivity.set('toUser', gallery.get('user')).save(null, {useMasterKey: true});
-        })
+        });
 
     } else {
         return newActivity.save(null, {useMasterKey: true});

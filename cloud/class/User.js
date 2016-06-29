@@ -2,7 +2,10 @@
 const Image           = require('../helpers/image');
 const GalleryActivity = require('../class/GalleryActivity');
 const ParseObject     = Parse.Object.extend('User');
-module.exports        = {
+const UserFollow      = Parse.Object.extend('UserFollow');
+const UserData        = Parse.Object.extend('UserData');
+
+module.exports = {
     beforeSave         : beforeSave,
     afterSave          : afterSave,
     afterDelete        : afterDelete,
@@ -17,6 +20,7 @@ module.exports        = {
     destroyUser        : destroyUser,
     saveFacebookPicture: saveFacebookPicture,
     follow             : follow,
+    isFollow           : isFollow,
     validateUsername   : validateUsername,
     validateEmail      : validateEmail,
     incrementGallery   : incrementGallery,
@@ -26,50 +30,138 @@ module.exports        = {
 };
 
 function follow(req, res) {
-    const object = req.params;
+    const params = req.params;
+    if (!req.user) {
+        return res.error('Not Authorized');
+    }
+
+    if (!params.userId) {
+        return res.error('Not Authorized');
+    }
+
+    new Parse.Query(Parse.User)
+        .equalTo('objectId', params.userId)
+        .first({useMasterKey: true})
+        .then(toUser=> {
+
+            new Parse.Query(UserFollow)
+                .equalTo('from', req.user)
+                .equalTo('to', toUser)
+                .first({useMasterKey: true})
+                .then(isFollow=> {
+
+                    let activity = {
+                        fromUser: req.user,
+                        toUser  : toUser,
+                    };
+
+                    if (isFollow) {
+                        // unfollow
+                        activity.action = 'unfollow user';
+                        Parse.Promise.when([
+                            isFollow.destroy(),
+                            decrementFollowers(toUser),
+                            decrementFollowing(req.user),
+                            GalleryActivity.create(activity)
+                        ]).then(data=> {
+                            res.success('unfollow');
+                        });
+                    } else {
+
+                        // follow
+                        activity.action = 'follow user';
+                        new UserFollow()
+                            .set('from', req.user)
+                            .set('to', toUser)
+                            .set('date', Date())
+                            .save(null, {useMasterKey: true})
+                            .then(data=> {
+                                console.log('data1', data);
+                                Parse.Promise.when([
+                                    incrementFollowers(toUser),
+                                    incrementFollowing(req.user),
+                                    GalleryActivity.create(activity)
+                                ]).then(data=> {
+                                    console.log('data2', data);
+                                    res.success('follow');
+                                });
+                            }, res.error);
+
+                    }
+
+                }, res.error);
+
+        }, res.error)
+
+
+}
+
+function isFollow(req, res) {
     const user   = req.user;
+    const params = req.params;
     if (!user) {
         return res.error('Not Authorized');
     }
 
-    if (!object.toUser) {
+    if (!params.toUser) {
         return res.error('Not Authorized');
     }
-
-    new Parse.Query(Parse.Object.extend('UserFollow'))
-        .set('toUser', object.toUser)
-        .set('fromUser', user)
-        .set('date', Date())
-        .save({useMasterKey: true})
-        .then(res.success, error=>res.error);
+    new Parse.Query(UserFollow)
+        .equalTo('from', user)
+        .equalto('to', params.to)
+        .count(data=> {
+            if (data > 0) {
+                res.success('following')
+            } else {
+                res.error('not following');
+            }
+        }, error=> {
+            res.error('not following');
+        })
 }
 
 function profile(req, res) {
     var params = req.params;
-    var user   = req.user;
 
-    new Promise.Query('UserData').equalTo('users', user).first().then(function (user) {
+    if (!req.user) {
+        return res.error('Not Authorized');
+    }
 
-        //if (!adminRole) {
-        //    return res.error('Not Authorized');
-        //}
+    console.log('profile', params);
+    let toUser;
+    let userData;
 
-        let query = new Parse.Query(Parse.User);
-
-        if (params.filter != '') {
-            query.contains('email', params.filter);
-        }
-
-        query.descending('createdAt')
-             .limit(params.limit)
-             .skip((params.page * params.limit) - params.limit);
-
-        return Parse.Promise.when(query.find({useMasterKey: true}), query.count({useMasterKey: true}));
-    }).then((users, total) =>res.success({
-        users: users,
-        total: total
-    }), error=> res.error(error.message));
-
+    new Parse.Query(Parse.User)
+        .equalTo('username', req.params.username)
+        .first({useMasterKey: true})
+        .then(user => {
+            toUser = user;
+            return new Parse.Query(UserData)
+                .equalTo('user', user)
+                .first()
+        })
+        .then(data=> {
+            userData = data;
+            new Parse.Query(UserFollow)
+                .equalTo('from', req.user)
+                .equalTo('to', toUser)
+                .count()
+                .then(isFollow=> {
+                    let profile = {
+                        name           : userData.attributes.name,
+                        username       : userData.attributes.username,
+                        followersTotal : userData.attributes.followersTotal,
+                        followingsTotal: userData.attributes.followingsTotal,
+                        galleiresTotal : userData.attributes.galleriesTotal,
+                        status         : userData.attributes.status,
+                        photo          : userData.attributes.photo,
+                        userObj        : toUser,
+                        userDataObj    : userData,
+                        isFollow       : isFollow ? true : false
+                    }
+                    res.success(profile);
+                }, res.error);
+        }, res.error)
 }
 
 function get(userId) {
@@ -113,7 +205,7 @@ function afterSave(req, res) {
     var user           = req.object;
     var userRequesting = req.user;
 
-    new Parse.Query('UserData').equalTo('user', user).first().then(userData => {
+    new Parse.Query(UserData).equalTo('user', user).first().then(userData => {
 
         if (userData) {
             userData.set('name', user.get('name'));
@@ -129,7 +221,7 @@ function afterSave(req, res) {
             roleACL.setPublicReadAccess(true);
             roleACL.setWriteAccess(user, true);
 
-            userData = new Parse.Object('UserData', {
+            userData = new Parse.Object(UserData, {
                 user           : user,
                 ACL            : roleACL,
                 name           : user.get('name'),
@@ -176,10 +268,10 @@ function createUser(req, res, next) {
     var data = req.params;
     var user = req.user;
 
-    var query = new Parse.Query(Parse.Role);
-    query.equalTo('name', 'Admin');
-    query.equalTo('users', user);
-    query.first().then(function (adminRole) {
+    new Parse.Query(Parse.Role)
+        .equalTo('name', 'Admin')
+        .equalTo('users', user)
+        .first().then(function (adminRole) {
 
         if (!adminRole) {
             return res.error('Not Authorized');
@@ -208,7 +300,7 @@ function findUserByUsername(req, res, next) {
         .equalTo('username', req.params.username)
         .first({useMasterKey: true})
         .then(user => {
-            new Parse.Query('UserData')
+            new Parse.Query(UserData)
                 .equalTo('user', user)
                 .first()
                 .then(userdata=> {
@@ -327,7 +419,7 @@ function saveFacebookPicture(req, res, next) {
         return res.error('Not Authorized');
     }
 
-    if(user.attributes.photo.length) {
+    if (user.attributes.photo.length) {
         return res.success('Photo user')
     }
 
@@ -338,7 +430,7 @@ function saveFacebookPicture(req, res, next) {
         return res.error('Not logged with facebook');
     }
 
-    let profilePictureUrl = 'https://graph.facebook.com/' + facebook+ '/picture';
+    let profilePictureUrl = 'https://graph.facebook.com/' + facebook + '/picture';
 
     return Parse.Cloud.httpRequest({
         url            : profilePictureUrl,
@@ -394,25 +486,37 @@ function incrementGallery(user) {
 
 //seguidoes
 function incrementFollowers(user) {
-    new Parse.Query('UserData').equalTo('user', user).first().then(user => {
+    return new Parse.Query('UserData').equalTo('user', user).first().then(user => {
         user.increment('followersTotal');
-        user.save(null, {useMasterKey: true})
-            .then(success=>console.log('followersTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
+        return user.save(null, {useMasterKey: true});
     });
 }
 //seguindo
 function incrementFollowing(user) {
-    new Parse.Query('UserData').equalTo('user', user).first().then(user => {
+    return new Parse.Query('UserData').equalTo('user', user).first().then(user => {
         user.increment('followingsTotal');
-        user.save(null, {useMasterKey: true})
-            .then(success=>console.log('followingTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
+        return user.save(null, {useMasterKey: true})
+    });
+}
+
+//seguidoes
+function decrementFollowers(user) {
+    return new Parse.Query('UserData').equalTo('user', user).first().then(user => {
+        user.increment('followersTotal', -1);
+        return user.save(null, {useMasterKey: true});
+    });
+}
+//seguindo
+function decrementFollowing(user) {
+    return new Parse.Query('UserData').equalTo('user', user).first().then(user => {
+        user.increment('followingsTotal', -1);
+        return user.save(null, {useMasterKey: true})
     });
 }
 
 function incrementComment(user) {
     new Parse.Query('UserData').equalTo('user', user).first().then(user => {
         user.increment('commentsTotal');
-        user.save(null, {useMasterKey: true})
-            .then(success=>console.log('comemntTotal', success), error=>console.log('Got an error ' + error.code + ' : ' + error.message));
+        return user.save(null, {useMasterKey: true})
     });
 }
