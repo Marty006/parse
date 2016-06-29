@@ -9,12 +9,12 @@
   },
   "license": "MIT",
   "dependencies": {
-    "body-parser": "^1.15.1",
+    "body-parser": "^1.15.2",
     "cookie-parser": "^1.4.3",
     "cookie-session": "^2.0.0-alpha.1",
     "cors": "^2.7.1",
     "ejs": "^2.4.2",
-    "express": "~4.13.x",
+    "express": "~4.14.x",
     "express-ejs-layouts": "^2.1.0",
     "jimp": "^0.2.24",
     "kerberos": "~0.0.x",
@@ -22,7 +22,7 @@
     "method-override": "^2.3.6",
     "parse": "~1.8.5",
     "parse-dashboard": "^1.0.14",
-    "parse-server": "~2.2.13",
+    "parse-server": "~2.2.14",
     "parse-server-onesignal-push-adapter": "^1.0.0",
     "parse-server-simple-mailgun-adapter": "^1.0.0"
   },
