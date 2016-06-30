@@ -4,6 +4,7 @@ const GalleryActivity = require('../class/GalleryActivity');
 const ParseObject     = Parse.Object.extend('User');
 const UserFollow      = Parse.Object.extend('UserFollow');
 const UserData        = Parse.Object.extend('UserData');
+const _               = require('lodash');
 
 module.exports = {
     beforeSave         : beforeSave,
@@ -16,11 +17,14 @@ module.exports = {
     findUserByEmail    : findUserByEmail,
     findUserByUsername : findUserByUsername,
     getUsers           : getUsers,
+    listUsers          : listUsers,
     updateUser         : updateUser,
     destroyUser        : destroyUser,
     saveFacebookPicture: saveFacebookPicture,
     follow             : follow,
     isFollow           : isFollow,
+    getFollowers       : getFollowers,
+    getFollowings      : getFollowings,
     validateUsername   : validateUsername,
     validateEmail      : validateEmail,
     incrementGallery   : incrementGallery,
@@ -28,6 +32,45 @@ module.exports = {
     incrementFollowing : incrementFollowing,
     incrementComment   : incrementComment,
 };
+
+
+function getFollowers(req, res) {
+    const params = req.params;
+
+    if (!req.user) {
+        return res.error('Not Authorized');
+    }
+
+    if (!req.fromUser) {
+        return res.error('Not Authorized');
+    }
+    new Parse.Query(UserFollow)
+        .equalTo('from', params.fromUser)
+        .include('user')
+        .find({useMasterKey: true})
+        .then(users=> {
+            res.success(users);
+        }, res.error);
+}
+
+function getFollowings(req, res) {
+    const params = req.params;
+
+    if (!req.user) {
+        return res.error('Not Authorized');
+    }
+
+    if (!req.toUser) {
+        return res.error('Not Authorized');
+    }
+    new Parse.Query(UserFollow)
+        .equalTo('to', params.toUser)
+        .include('user')
+        .find({useMasterKey: true})
+        .then(users=> {
+            res.success(users);
+        }, res.error);
+}
 
 function follow(req, res) {
     const params = req.params;
@@ -205,7 +248,9 @@ function afterSave(req, res) {
     var user           = req.object;
     var userRequesting = req.user;
 
-    new Parse.Query(UserData).equalTo('user', user).first().then(userData => {
+    console.log('user.existed', user.existed());
+
+    new Parse.Query('UserData').equalTo('user', user).first({useMasterKey: true}).then(userData => {
 
         if (userData) {
             userData.set('name', user.get('name'));
@@ -221,7 +266,7 @@ function afterSave(req, res) {
             roleACL.setPublicReadAccess(true);
             roleACL.setWriteAccess(user, true);
 
-            userData = new Parse.Object(UserData, {
+            userData = new Parse.Object('UserData', {
                 user           : user,
                 ACL            : roleACL,
                 name           : user.get('name'),
@@ -238,29 +283,33 @@ function afterSave(req, res) {
 
     if (!user.existed()) {
 
-        new Parse.Query(Parse.Role)
-            .equalTo('name', 'Admin')
-            .equalTo('users', userRequesting)
-            .first().then(function (isAdmin) {
+        var query = new Parse.Query(Parse.Role);
+        query.equalTo('name', 'Admin');
+        query.equalTo('users', userRequesting);
+        query.first().then(function (isAdmin) {
 
             if (!isAdmin && user.get('roleName') === 'Admin') {
-                return Parse.Promise.error({
-                    code   : 1,
-                    message: 'Not Authorized'
-                });
+                return Parse.Promise.error(new Parse.Error(1, 'Not Authorized'));
             }
 
-            let roleName   = user.get('roleName') || 'User';
-            let innerQuery = new Parse.Query(Parse.Role);
+            var roleName = user.get('roleName') || 'User';
+
+            var innerQuery = new Parse.Query(Parse.Role);
             innerQuery.equalTo('name', roleName);
             return innerQuery.first();
-        }).then(role=> {
+        }).then(function (role) {
+
             if (!role) {
-                return Parse.Promise.error('Role not found');
+                return Parse.Promise.error(new Parse.Error(1, 'Role not found'));
             }
+
             role.getUsers().add(user);
             return role.save();
-        }).then(()=>console.log(success), error=>console.error('Got an error ' + error.code + ' : ' + error.message));
+        }).then(function () {
+            console.log(success);
+        }, function (error) {
+            console.error('Got an error ' + error.code + ' : ' + error.message);
+        })
     }
 }
 
@@ -323,31 +372,91 @@ function findUserByEmail(req, res, next) {
 function getUsers(req, res, next) {
     var params = req.params;
     var user   = req.user;
-    var query  = new Parse.Query(Parse.Role);
-    query.equalTo('name', 'Admin');
-    query.equalTo('users', user);
-    query.first().then(adminRole => {
+    new Parse.Query(Parse.Role)
+        .equalTo('name', 'Admin')
+        .equalTo('users', user)
+        .first()
+        .then(adminRole => {
 
-        if (!adminRole) {
-            return res.error('Not Authorized');
-        }
+            if (!adminRole) {
+                return res.error('Not Authorized');
+            }
 
-        const query = new Parse.Query(Parse.User);
+            const query = new Parse.Query(Parse.User);
 
-        if (params.filter != '') {
-            query.contains('email', params.filter);
-        }
+            if (params.filter != '') {
+                query.contains('email', params.filter);
+            }
 
-        query.descending('createdAt');
-        query.limit(params.limit);
-        query.skip((params.page * params.limit) - params.limit);
+            query.descending('createdAt');
+            query.limit(params.limit);
+            query.skip((params.page * params.limit) - params.limit);
 
-        return Parse.Promise.when(query.find({useMasterKey: true}), query.count({useMasterKey: true}));
-    })
-         .then((users, total) =>res.success({
-             users: users,
-             total: total
-         }), error=> res.error(error.message));
+            return Parse.Promise.when(query.find({useMasterKey: true}), query.count({useMasterKey: true}));
+        })
+        .then((users, total) =>res.success({
+            users: users,
+            total: total
+        }), error=> res.error(error.message));
+}
+
+function listUsers(req, res, next) {
+    const params = req.params;
+    const _page  = req.params.page || 1;
+    const _limit = req.params.limit || 24;
+
+    new Parse.Query(Parse.User)
+        .descending('createdAt')
+        .notContainedIn('objectId', [req.user.id])
+        .limit(_limit)
+        .skip((_page * _limit) - _limit)
+        .find({useMasterKey: true})
+        .then(data=> {
+
+            console.log('users', data);
+
+            let _result = [];
+
+            if (!data.length) {
+                res.success(_result);
+            }
+
+            let cb = _.after(data.length, ()=> {
+                res.success(_result);
+            });
+
+            _.each(data, user=> {
+
+                // User Data
+                new Parse.Query('UserData').equalTo('user', user).first({useMasterKey: true}).then(userData=> {
+
+                    new Parse.Query(UserFollow)
+                        .equalTo('from', req.user)
+                        .equalTo('to', user)
+                        .count()
+                        .then(isFollow=> {
+                            let profile = {
+                                name           : userData.attributes.name,
+                                username       : userData.attributes.username,
+                                followersTotal : userData.attributes.followersTotal,
+                                followingsTotal: userData.attributes.followingsTotal,
+                                galleiresTotal : userData.attributes.galleriesTotal,
+                                status         : userData.attributes.status,
+                                photo          : userData.attributes.photo,
+                                userObj        : user,
+                                userDataObj    : userData,
+                                isFollow       : isFollow ? true : false
+                            }
+                            console.log('profile', profile);
+                            _result.push(profile);
+                            cb();
+                        }, res.error);
+
+                }, res.error);
+            });
+
+        });
+
 }
 
 function updateUser(req, res, next) {

@@ -4,6 +4,7 @@ const Image           = require('./../helpers/image');
 const User            = require('./../class/User');
 const GalleryActivity = require('./../class/GalleryActivity');
 const ParseObject     = Parse.Object.extend('Gallery');
+const UserFollow      = Parse.Object.extend('UserFollow');
 
 module.exports = {
     beforeSave    : beforeSave,
@@ -198,8 +199,8 @@ function feed(req, res, next) {
         _query.containsAll("hashtags", [params.hashtags]);
     }
 
+    let following = [];
 
-    // if set username, find gallery by user
     if (params.username) {
         new Parse.Query(Parse.User)
             .equalTo('username', params.username)
@@ -211,7 +212,22 @@ function feed(req, res, next) {
                 runQuery();
             });
     } else {
-        runQuery();
+        new Parse.Query(UserFollow)
+            .equalTo('from', req.user)
+            .include('user')
+            .find({useMasterKey: true})
+            .then(users=> {
+                following = _.map(users, userFollow=> {
+                    return userFollow.get('to');
+                });
+
+                following.push(req.user);
+
+                console.log(following);
+                runQuery();
+
+
+            }, res.error);
     }
 
 
@@ -221,6 +237,7 @@ function feed(req, res, next) {
             .descending('createdAt')
             .limit(_limit)
             .skip((_page * _limit) - _limit)
+            .containedIn('user', following)
             .find()
             .then(data=> {
                 let _result = [];
