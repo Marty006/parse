@@ -4,31 +4,50 @@
    * http://pm2.keymetrics.io/docs/usage/application-declaration/
    */
   "apps": [
-    // First application
     {
       "name": "parse-server",
       "script": "index.js",
       "watch": true,
       "merge_logs": true,
       "env": {
+        // URL to your Parse Server (don't forget to specify http:// or https://).
+        // This URL will be used when making requests to Parse Server from Cloud Code.
         "SERVER_URL": "http://localhost:1337/parse",
-        // DEFINES
-        "MONGOLAB_URI": "mongodb://localhost/photogram",
+
+        // (required) - The connection string for your database, i.e. mongodb://user:pass@host.com/dbname.
+        // Be sure to URL encode your password if your password has special characters.
+        "DATABASE_URI": "mongodb://localhost:27017/photogram",
+
+        // Your apps name. This will appear in the subject and body of the emails that are sent.
         "APP_NAME": "Photogram",
+
+        // (required) - The application id to host with this server instance.
+        // You can use any arbitrary string. For migrated
         "APP_ID": "myAppId",
+
+        // (required) - The master key to use for overriding ACL security.
+        // You can use any arbitrary string. Keep it secret! For migrated apps, this should match your hosted Parse app.
         "MASTER_KEY": "myMasterKey",
         "MASTER_REST_KEY": "MPhotogramMasterKey",
-        // S3
-        "AWS_ACCESS_KEY_ID": "AKIAJ2PRIH7MX5SKEDNQ",
-        "AWS_SECRET_ACCESS_KEY": "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",
-        "BUCKET_NAME": "photogram-s3",
-        //MAILGUN EMAIL
-        "MAILGUN_API_KEY": "key-3a05e956706a4bd579982460b96cf43a",
-        "MAILGUN_DOMAIN": "",
-        "MAILGUN_FROM_ADDRESS": "",
-        // ONE SIGNAL PUSH
-        "ONE_SIGNAL_APP_ID": "d13d00d0-013f-406f-9811-66ce0737d7bc",
-        "ONE_SIGNAL_REST_API_KEY": "ZjQxOTEyMDQtN2QwOC00Nzg3LTgxZjctYmEwNjdhN2QwYWVl"
+
+        // (required) - The master key to use for overriding ACL security.
+        // You can use any arbitrary string. Keep it secret! For migrated apps, this should match your hosted Parse app.
+        "DASHBOARD_USER": "admin",
+        "DASHBOARD_PASSWORD": "admin123"
+
+        // (optional) - S3 for Storage Files
+        //"AWS_ACCESS_KEY_ID": "",
+        //"AWS_SECRET_ACCESS_KEY": "",
+        //"BUCKET_NAME": "",
+
+        // (optional) - MAILGUN for send Email
+        //"MAILGUN_API_KEY": "",
+        //"MAILGUN_DOMAIN": "",
+        //"MAILGUN_FROM_ADDRESS": "",
+
+        // (optional) - ONE SIGNAL for Send Push Notifications
+        //"ONE_SIGNAL_APP_ID": "",
+        //"ONE_SIGNAL_REST_API_KEY": ""
       }
     }
   ]

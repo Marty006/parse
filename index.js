@@ -12,11 +12,14 @@ const port           = process.env.PORT || 1337;
 // MongoDB
 const databaseUri    = process.env.DATABASE_URI || process.env.MONGOLAB_URI;
 //AppData
-const serverUrl      = process.env.SERVER_URL || 'http://localhost:1337/parse';
-const appId          = process.env.APP_ID || 'myAppId';
-const masterKey      = process.env.MASTER_KEY || 'myMasterKey';
-const restApiKey     = process.env.MASTER_REST_KEY || 'myRestApiKey';
-const appName        = process.env.APP_NAME || 'photogram';
+const serverUrl      = process.env.SERVER_URL;
+const appId          = process.env.APP_ID;
+const masterKey      = process.env.MASTER_KEY;
+const restApiKey     = process.env.MASTER_REST_KEY;
+const appName        = process.env.APP_NAME;
+
+const DASHBOARD_USER     = process.env.DASHBOARD_USER;
+const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD;
 
 
 if (!databaseUri) {
@@ -39,12 +42,11 @@ let ServerConfig = {
 };
 
 
-// AWS S3 configuration
-const S3accessKeyId     = process.env.AWS_ACCESS_KEY_ID || 'YOUR_AWS_ACCESS_KEY_ID';
-const S3secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || 'YOUR_AWS_SECRET_ACCESS_KEY';
-const S3bucketName      = process.env.BUCKET_NAME || 'YOUR_AWS_BUCKET_NAME';
-
-if (S3accessKeyId) {
+if (process.env.AWS_ACCESS_KEY_ID) {
+    // AWS S3 configuration
+    const S3accessKeyId       = process.env.AWS_ACCESS_KEY_ID;
+    const S3secretAccessKey   = process.env.AWS_SECRET_ACCESS_KEY;
+    const S3bucketName        = process.env.BUCKET_NAME;
     const S3Adapter           = require('parse-server').S3Adapter;
     ServerConfig.filesAdapter = new S3Adapter(
         S3accessKeyId,
@@ -54,12 +56,12 @@ if (S3accessKeyId) {
     );
 }
 
-// Mailgun configuration
-const MailgunApiKey      = process.env.MAILGUN_API_KEY || 'YOUR_MAILGUN_API_KEY';
-const MailgunDomain      = process.env.MAILGUN_DOMAIN || 'YOUR_MAILGUN_DOMAIN';
-const MailgunFromAddress = process.env.MAILGUN_FROM_ADDRESS || 'QuanLabs <dev@quanlabs.com>';
 
-if (MailgunApiKey) {
+if (process.env.MAILGUN_API_KEY) {
+    // Mailgun configuration
+    const MailgunApiKey       = process.env.MAILGUN_API_KEY;
+    const MailgunDomain       = process.env.MAILGUN_DOMAIN;
+    const MailgunFromAddress  = process.env.MAILGUN_FROM_ADDRESS;
     ServerConfig.emailAdapter = {
         module : 'parse-server-simple-mailgun-adapter',
         options: {
@@ -70,11 +72,12 @@ if (MailgunApiKey) {
     };
 }
 
-// Push OneSignal
-const OneSignalAppId  = process.env.ONE_SIGNAL_APP_ID || "your-one-signal-app-id";
-const OneSignalApiKey = process.env.ONE_SIGNAL_REST_API_KEY || "your-one-signal-api-key";
 
-if (OneSignalApiKey) {
+if (process.env.ONE_SIGNAL_APP_ID) {
+    // Push OneSignal
+    const OneSignalAppId  = process.env.ONE_SIGNAL_APP_ID;
+    const OneSignalApiKey = process.env.ONE_SIGNAL_REST_API_KEY;
+
     const OneSignalPushAdapter = require('parse-server-onesignal-push-adapter');
     ServerConfig.push          = {
         adapter: new OneSignalPushAdapter({
@@ -98,8 +101,8 @@ const dashboard = new ParseDashboard({
     ],
     users      : [
         {
-            user: 'admin', // Used to log in to your Parse Dashboard
-            pass: 'admin123'
+            user: DASHBOARD_USER, // Used to log in to your Parse Dashboard
+            pass: DASHBOARD_PASSWORD
         }
     ],
     iconsFolder: 'views/assets/images'
