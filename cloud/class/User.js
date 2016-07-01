@@ -430,26 +430,38 @@ function listUsers(req, res, next) {
                 // User Data
                 new Parse.Query('UserData').equalTo('user', user).first({useMasterKey: true}).then(userData=> {
 
+                    // Follow
                     new Parse.Query(UserFollow)
                         .equalTo('from', req.user)
                         .equalTo('to', user)
                         .count()
                         .then(isFollow=> {
-                            let profile = {
-                                name           : userData.attributes.name,
-                                username       : userData.attributes.username,
-                                followersTotal : userData.attributes.followersTotal,
-                                followingsTotal: userData.attributes.followingsTotal,
-                                galleiresTotal : userData.attributes.galleriesTotal,
-                                status         : userData.attributes.status,
-                                photo          : userData.attributes.photo,
-                                userObj        : user,
-                                userDataObj    : userData,
-                                isFollow       : isFollow ? true : false
-                            }
-                            console.log('profile', profile);
-                            _result.push(profile);
-                            cb();
+
+                            new Parse.Query('Gallery')
+                                .equalTo('user', user)
+                                .limit(3)
+                                .descending('createdAt')
+                                .find()
+                                .then(galleries=> {
+
+                                    let profile = {
+                                        name           : userData.attributes.name,
+                                        username       : userData.attributes.username,
+                                        followersTotal : userData.attributes.followersTotal,
+                                        followingsTotal: userData.attributes.followingsTotal,
+                                        galleiresTotal : userData.attributes.galleriesTotal,
+                                        status         : userData.attributes.status,
+                                        photo          : userData.attributes.photo,
+                                        userObj        : user,
+                                        userDataObj    : userData,
+                                        isFollow       : isFollow ? true : false,
+                                        galleries      : galleries
+                                    }
+                                    console.log('profile', profile);
+                                    _result.push(profile);
+                                    cb();
+                                })
+
                         }, res.error);
 
                 }, res.error);
