@@ -36,6 +36,8 @@
         "DASHBOARD_PASSWORD": "admin123"
 
         // (optional) - S3 for Storage Files
+        // Files are hosted via automaticamentes GridStore Adapter in MongoDB
+        // If you want to host the files on S3 fill in the form below
         //"AWS_ACCESS_KEY_ID": "",
         //"AWS_SECRET_ACCESS_KEY": "",
         //"BUCKET_NAME": "",
