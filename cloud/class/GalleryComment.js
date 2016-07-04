@@ -34,13 +34,20 @@ function beforeSave(req, res) {
 function afterSave(req, res) {
     const comment = req.object;
 
+    if (req.object.existed()) {
+        return
+    }
+
     let activity = {
         action  : 'photoCommented',
         fromUser: req.user,
+        toUser  : comment.get('gallery').user,
         gallery : comment.get('gallery')
     };
 
     console.log('after comment', activity);
-    GalleryActivity.create(activity);
-    User.incrementComment(req.user);
+    return Parse.Promise.when([
+        GalleryActivity.create(activity),
+        User.incrementComment(req.user)
+    ]);
 }

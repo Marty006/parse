@@ -120,6 +120,7 @@ function afterSave(req) {
     let activity = {
         action  : 'addPhoto',
         fromUser: user,
+        toUser  : req.object.user,
         gallery : req.object
     };
     console.log(activity);

@@ -2,6 +2,7 @@
 const _           = require('lodash');
 const User        = require('./../class/User');
 const ParseObject = Parse.Object.extend('GalleryActivity');
+const UserFollow  = Parse.Object.extend('UserFollow');
 
 module.exports = {
     afterSave: afterSave,
@@ -21,8 +22,7 @@ function afterSave(req, res) {
         return;
     }
 
-    const query = new Parse.Query(Parse.Installation);
-    query.equalTo('user', toUser);
+    const query = new Parse.Query(Parse.Installation).equalTo('user', toUser);
     Parse.Push.send({
         where: query,
         data : alertPayload(req)
@@ -69,7 +69,7 @@ function alertMessage(req) {
         if (req.user.get('name')) {
             message = req.user.get('name') + ': ' + req.object.get('content').trim();
         } else {
-            message = 'Someone commented on your photo.';
+            message = req.user.get('name') + ' commented on your photo.';
         }
     } else if (req.object.get('type') === 'like') {
         if (req.user.get('name')) {
@@ -127,18 +127,15 @@ function feed(req, res, next) {
 
     console.log('Start feed', req.params);
 
-    let _query = new Parse.Query(ParseObject);
-
-    _query
+    new Parse.Query(ParseObject)
         .descending('createdAt')
         .limit(_limit)
         .include('gallery')
+        .equalTo('toUser', req.user)
         .skip((_page * _limit) - _limit)
         .find({useMasterKey: true})
         .then(data=> {
             let _result = [];
-
-            console.log(data);
 
             if (!data.length) {
                 res.success(_result);
@@ -153,7 +150,6 @@ function feed(req, res, next) {
                 let userGet = item.get('fromUser');
                 new Parse.Query('UserData').equalTo('user', userGet).first().then(user=> {
 
-                    console.log('User', user);
                     let obj = {
                         item     : item,
                         action   : item.get('action'),
@@ -161,20 +157,34 @@ function feed(req, res, next) {
                     };
 
                     if (user) {
-                        obj.user = {
-                            userObj: user,
-                            id     : user.id,
-                            name   : user.get('name'),
-                            status : user.get('status'),
-                            photo  : user.get('photo')
-                        }
+
+
+                        new Parse.Query(UserFollow)
+                            .equalTo('from', req.user)
+                            .equalTo('to', user)
+                            .count()
+                            .then(isFollow=> {
+                                console.log(isFollow);
+                                obj.user = {
+                                    obj     : user,
+                                    id      : user.id,
+                                    name    : user.get('name'),
+                                    username: user.get('username'),
+                                    status  : user.get('status'),
+                                    photo   : user.get('photo'),
+                                    isFollow: isFollow > 0 ? true : false
+                                };
+                                _result.push(obj);
+                                cb();
+
+                            }, res.error);
+                    } else {
+
+                        // Comments
+                        _result.push(obj);
+                        cb();
                     }
 
-                    console.log('Obj', obj);
-
-                    // Comments
-                    _result.push(obj);
-                    cb();
                 }, err=>console.log);
 
             });
