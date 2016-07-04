@@ -5,18 +5,16 @@ const ParseServer    = require('parse-server').ParseServer;
 const ParseDashboard = require('parse-dashboard');
 const path           = require('path');
 
-// Jade
-const expressLayouts = require('express-ejs-layouts');
 // Parse configuration
-const port           = process.env.PORT || 1337;
+const port        = process.env.PORT || 1337;
 // MongoDB
-const databaseUri    = process.env.DATABASE_URI || process.env.MONGOLAB_URI;
+const databaseUri = process.env.DATABASE_URI || process.env.MONGOLAB_URI;
 //AppData
-const serverUrl      = process.env.SERVER_URL;
-const appId          = process.env.APP_ID;
-const masterKey      = process.env.MASTER_KEY;
-const restApiKey     = process.env.MASTER_REST_KEY;
-const appName        = process.env.APP_NAME;
+const serverUrl   = process.env.SERVER_URL;
+const appId       = process.env.APP_ID;
+const masterKey   = process.env.MASTER_KEY;
+const restApiKey  = process.env.MASTER_REST_KEY;
+const appName     = process.env.APP_NAME;
 
 const DASHBOARD_USER     = process.env.DASHBOARD_USER;
 const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD;
@@ -42,7 +40,7 @@ let ServerConfig = {
 };
 
 
-if (process.env.AWS_ACCESS_KEY_ID) {
+if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_ACCESS_KEY_ID != '') {
     // AWS S3 configuration
     const S3accessKeyId       = process.env.AWS_ACCESS_KEY_ID;
     const S3secretAccessKey   = process.env.AWS_SECRET_ACCESS_KEY;
@@ -57,7 +55,7 @@ if (process.env.AWS_ACCESS_KEY_ID) {
 }
 
 
-if (process.env.MAILGUN_API_KEY) {
+if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_API_KEY != '') {
     // Mailgun configuration
     const MailgunApiKey       = process.env.MAILGUN_API_KEY;
     const MailgunDomain       = process.env.MAILGUN_DOMAIN;
@@ -73,7 +71,7 @@ if (process.env.MAILGUN_API_KEY) {
 }
 
 
-if (process.env.ONE_SIGNAL_APP_ID) {
+if (process.env.ONE_SIGNAL_APP_ID && process.env.ONE_SIGNAL_APP_ID != '') {
     // Push OneSignal
     const OneSignalAppId  = process.env.ONE_SIGNAL_APP_ID;
     const OneSignalApiKey = process.env.ONE_SIGNAL_REST_API_KEY;
