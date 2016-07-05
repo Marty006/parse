@@ -1,32 +1,32 @@
 'use strict';
-const express        = require('express');
-const cors           = require('cors');
-const ParseServer    = require('parse-server').ParseServer;
-const ParseDashboard = require('parse-dashboard');
-const path           = require('path');
+const express              = require('express');
+const cors                 = require('cors');
+const ParseServer          = require('parse-server').ParseServer;
+const ParseDashboard       = require('parse-dashboard');
+const expressLayouts       = require('express-ejs-layouts');
+const path                 = require('path');
+const OneSignalPushAdapter = require('parse-server-onesignal-push-adapter');
+const FSFilesAdapter       = require('parse-server-fs-adapter');
+const S3Adapter            = require('parse-server').S3Adapter;
 
 // Parse configuration
+// Parse configuration
 const port        = process.env.PORT || 1337;
-// MongoDB
 const databaseUri = process.env.DATABASE_URI || process.env.MONGOLAB_URI;
-//AppData
-const serverUrl   = process.env.SERVER_URL;
-const appId       = process.env.APP_ID;
-const masterKey   = process.env.MASTER_KEY;
-const restApiKey  = process.env.MASTER_REST_KEY;
-const appName     = process.env.APP_NAME;
+const serverUrl   = process.env.SERVER_URL || 'http://localhost:1337/parse';
+const appId       = process.env.APP_ID || 'myAppId';
+const masterKey   = process.env.MASTER_KEY || 'myMasterKey';
+const restApiKey  = process.env.MASTER_REST_KEY || 'myRestApiKey';
+const appName     = process.env.APP_NAME || 'photogram';
 
-const DASHBOARD_USER     = process.env.DASHBOARD_USER;
-const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD;
-
-
-if (!databaseUri) {
+// Database Ecosystem file
+if (!process.env.DATABASE_URI) {
     console.log('DATABASE_URI not specified, falling back to localhost.');
 }
 
 let ServerConfig = {
-    databaseURI     : databaseUri || 'mongodb://localhost:27017/photogram',
-    cloud           : './cloud/main.js',
+    databaseURI     : databaseUri || 'mongodb://localhost:27017/dev',
+    cloud           : process.env.CLOUD_CODE_MAIN || __dirname + '/cloud/main.js',
     appId           : appId,
     masterKey       : masterKey,
     serverURL       : serverUrl,
@@ -39,74 +39,53 @@ let ServerConfig = {
     //},
 };
 
+// File Local
+if (process.env.UPLOAD_LOCAL_PATH) {
+    ServerConfig.filesAdapter = new FSFilesAdapter({
+        filesSubDirectory: process.env.UPLOAD_LOCAL_PATH
+    });
+}
 
-if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_ACCESS_KEY_ID != '') {
-    // AWS S3 configuration
-    const S3accessKeyId       = process.env.AWS_ACCESS_KEY_ID;
-    const S3secretAccessKey   = process.env.AWS_SECRET_ACCESS_KEY;
-    const S3bucketName        = process.env.BUCKET_NAME;
-    const S3Adapter           = require('parse-server').S3Adapter;
+// AWS S3 configuration
+if (process.env.AWS_ACCESS_KEY_ID) {
     ServerConfig.filesAdapter = new S3Adapter(
-        S3accessKeyId,
-        S3secretAccessKey,
-        S3bucketName,
+        process.env.AWS_ACCESS_KEY_ID,
+        process.env.AWS_SECRET_ACCESS_KEY,
+        process.env.BUCKET_NAME,
         {directAccess: true}
     );
 }
 
 
-if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_API_KEY != '') {
-    // Mailgun configuration
-    const MailgunApiKey       = process.env.MAILGUN_API_KEY;
-    const MailgunDomain       = process.env.MAILGUN_DOMAIN;
-    const MailgunFromAddress  = process.env.MAILGUN_FROM_ADDRESS;
+// Mailgun configuration
+if (process.env.MAILGUN_API_KEY) {
     ServerConfig.emailAdapter = {
         module : 'parse-server-simple-mailgun-adapter',
         options: {
-            apiKey     : MailgunApiKey,
-            fromAddress: MailgunFromAddress,
-            domain     : MailgunDomain,
+            apiKey     : process.env.MAILGUN_API_KEY,
+            fromAddress: process.env.MAILGUN_DOMAIN,
+            domain     : process.env.MAILGUN_FROM_ADDRESS,
         }
     };
 }
 
 
-if (process.env.ONE_SIGNAL_APP_ID && process.env.ONE_SIGNAL_APP_ID != '') {
-    // Push OneSignal
-    const OneSignalAppId  = process.env.ONE_SIGNAL_APP_ID;
-    const OneSignalApiKey = process.env.ONE_SIGNAL_REST_API_KEY;
-
-    const OneSignalPushAdapter = require('parse-server-onesignal-push-adapter');
-    ServerConfig.push          = {
+// Push OneSignal
+if (process.env.ONE_SIGNAL_APP_ID) {
+    ServerConfig.push = {
         adapter: new OneSignalPushAdapter({
-            oneSignalApiKey: OneSignalApiKey,
-            oneSignalAppId : OneSignalAppId,
+            oneSignalApiKey: process.env.ONE_SIGNAL_APP_ID,
+            oneSignalAppId : process.env.ONE_SIGNAL_REST_API_KEY,
         })
     };
 }
 
+console.log('ServerConfig', ServerConfig);
 
-const api       = new ParseServer(ServerConfig);
-const dashboard = new ParseDashboard({
-    apps       : [
-        {
-            appName  : appName,
-            serverURL: serverUrl,
-            appId    : appId,
-            masterKey: masterKey,
-            iconName : 'icon.png'
-        }
-    ],
-    users      : [
-        {
-            user: DASHBOARD_USER, // Used to log in to your Parse Dashboard
-            pass: DASHBOARD_PASSWORD
-        }
-    ],
-    iconsFolder: 'views/assets/images'
-}, true);
-
+// Start Parse Server
+const api = new ParseServer(ServerConfig);
 const app = express();
+app.use(expressLayouts);
 
 // Cors
 app.use(cors());
@@ -114,29 +93,48 @@ app.use(cors());
 // EJS Template
 app.set('view engine', 'ejs');
 app.use(express.static('views'));
+
 app.use((req, res, next) => {
-    res.locals.appId     = appId;
-    res.locals.serverUrl = serverUrl;
+    res.locals.appId     = process.env.APP_ID;
+    res.locals.serverUrl = process.env.SERVER_URL;
     next();
 });
 
-app.get('/', function (req, res) {
-    res.render('index');
-});
+app.get('/', (req, res) => res.render('index'));
 
 // Serve the Parse API on the /parse URL prefix
 const mountPath = process.env.PARSE_MOUNT || '/parse';
 app.use(mountPath, api);
 
+// Parse Dashboard
+if (process.env.DASHBOARD_USER) {
+    const DASHBOARD_USER     = process.env.DASHBOARD_USER;
+    const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD;
+    const dashboard          = new ParseDashboard({
+        apps       : [
+            {
+                appName  : process.env.APP_NAME,
+                serverURL: process.env.SERVER_URL,
+                appId    : process.env.APP_ID,
+                masterKey: process.env.MASTER_KEY,
+                iconName : 'icon.png'
+            }
+        ],
+        users      : [
+            {
+                user: DASHBOARD_USER, // Used to log in to your Parse Dashboard
+                pass: DASHBOARD_PASSWORD
+            }
+        ],
+        iconsFolder: 'icons'
+    }, true);
 
-// make the Parse Dashboard available at /dashboard
-app.use('/dashboard', dashboard);
+    // make the Parse Dashboard available at /dashboard
+    app.use(process.env.DASHBOARD_URL, dashboard);
+}
 
-
-var httpServer = require('http').createServer(app);
-httpServer.listen(port, function () {
-    console.log('parse-server-example running on port ' + port + '.');
-});
+const httpServer = require('http').createServer(app);
+httpServer.listen(port, () => console.log('parse-server-example running on port ' + port + '.'));
 
 // This will enable the Live Query real-time server
 ParseServer.createLiveQueryServer(httpServer);

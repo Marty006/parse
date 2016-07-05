@@ -30,9 +30,11 @@ module.exports = {
     validateUsername   : validateUsername,
     validateEmail      : validateEmail,
     incrementGallery   : incrementGallery,
+    decrementGallery   : decrementGallery,
     incrementFollowers : incrementFollowers,
     incrementFollowing : incrementFollowing,
     incrementComment   : incrementComment,
+    decrementComment   : decrementComment,
 };
 
 
@@ -460,6 +462,7 @@ function profile(req, res) {
                 .count()
                 .then(isFollow=> {
                     let profile = {
+                        id             : toUser.id,
                         name           : userData.attributes.name,
                         username       : userData.attributes.username,
                         followersTotal : userData.attributes.followersTotal,
@@ -467,9 +470,9 @@ function profile(req, res) {
                         galleiresTotal : userData.attributes.galleriesTotal,
                         status         : userData.attributes.status,
                         photo          : userData.attributes.photo,
-                        userObj        : toUser,
                         userDataObj    : userData,
-                        isFollow       : isFollow ? true : false
+                        isFollow       : isFollow ? true : false,
+                        obj            : toUser,
                     }
                     res.success(profile);
                 }, res.error);
@@ -871,6 +874,12 @@ function incrementGallery(user) {
     });
 }
 
+function decrementGallery(user) {
+    return new Parse.Query('UserData').equalTo('user', user).first().then(user => {
+        return user.increment('galleriesTotal', -1).save(null, {useMasterKey: true})
+    });
+}
+
 //seguidoes
 function incrementFollowers(user) {
     return new Parse.Query('UserData').equalTo('user', user).first().then(user => {
@@ -901,5 +910,11 @@ function decrementFollowing(user) {
 function incrementComment(user) {
     return new Parse.Query('UserData').equalTo('user', user).first().then(user => {
         return user.increment('commentsTotal').save(null, {useMasterKey: true})
+    });
+}
+
+function decrementComment(user) {
+    return new Parse.Query('UserData').equalTo('user', user).first().then(user => {
+        return user.increment('commentsTotal', 1).save(null, {useMasterKey: true})
     });
 }

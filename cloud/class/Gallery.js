@@ -97,17 +97,36 @@ function beforeSave(req, res) {
 }
 
 function afterDelete(req, res) {
-    var query = new Parse.Query('GalleryComment');
-    query.equalTo('gallery', req.user);
-
-    query.find().then(results=> {
+    let deleteComments = new Parse.Query('GalleryComment').equalTo('gallery', req.object).find().then(results=> {
         // Collect one promise for each delete into an array.
         let promises = [];
-        _.each(results, result =>promises.push(result.destroy()));
+        _.each(results, result => {
+            promises.push(result.destroy());
+            User.decrementComment();
+        });
         // Return a new promise that is resolved when all of the deletes are finished.
         return Parse.Promise.when(promises);
 
-    }).then(res.success, req.error);
+    });
+
+    let deleteActivity = new Parse.Query('GalleryActivity').equalTo('gallery', req.object).find().then(results=> {
+        // Collect one promise for each delete into an array.
+        let promises = [];
+        _.each(results, result => {
+            promises.push(result.destroy());
+            User.decrementGallery();
+        });
+        // Return a new promise that is resolved when all of the deletes are finished.
+        return Parse.Promise.when(promises);
+
+    });
+
+    Parse.Promise.when([
+        deleteActivity,
+        deleteComments
+    ]).then(res.success, res.error);
+
+
 }
 
 function afterSave(req) {
