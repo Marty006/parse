@@ -93,6 +93,8 @@ function beforeSave(req, res) {
     }).then(savedFile => {
         gallery.set('imageThumb', savedFile);
         return Image.resize(imageUrl, 32, 32);
+    }).then(base64=> {
+        return Image.saveImage(base64);
     }).then(savedFile=> {
         gallery.set('icon', savedFile);
         res.success();
