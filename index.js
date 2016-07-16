@@ -1,12 +1,12 @@
 'use strict';
-const express              = require('express');
-const cors                 = require('cors');
-const ParseServer          = require('parse-server').ParseServer;
-const ParseDashboard       = require('parse-dashboard');
-const expressLayouts       = require('express-ejs-layouts');
-const path                 = require('path');
-const FSFilesAdapter       = require('parse-server-fs-adapter');
-const S3Adapter            = require('parse-server').S3Adapter;
+const express        = require('express');
+const cors           = require('cors');
+const ParseServer    = require('parse-server').ParseServer;
+const ParseDashboard = require('parse-dashboard');
+const expressLayouts = require('express-ejs-layouts');
+const path           = require('path');
+const FSFilesAdapter = require('parse-server-fs-adapter');
+const S3Adapter      = require('parse-server').S3Adapter;
 
 // Parse configuration
 const PORT            = process.env.PORT || 1337;
@@ -39,11 +39,19 @@ let ServerConfig = {
     //},
 };
 
-if (process.env.pushAndroid) {
+// Parse Push
+let PUSH = process.env.PUSH;
+if (PUSH) {
+    PUSH = JSON.parse(PUSH);
     ServerConfig.push = {
         android: {
-            senderId: process.env.pushAndroid.senderId,
-            apiKey: process.env.pushAndroid.apiKey
+            senderId: PUSH.android.senderId,
+            apiKey  : PUSH.android.apiKey
+        },
+        ios    : {
+            pfx       : PUSH.ios.pfx,
+            bundleId  : PUSH.ios.bundleId,
+            production: PUSH.ios.production
         }
     };
 }

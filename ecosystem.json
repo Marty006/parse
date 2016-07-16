@@ -47,7 +47,7 @@
         "MAILGUN_FROM_ADDRESS": "postmaster@photogramapp.com",
 
         // Push Notification
-        "push" :{
+        "PUSH" :{
           "android": {
             "apiKey": "AIzaSyCBXV7CnhusYV0172lMsvvDy1zHfr96luk",
             "senderId": "285805785383"
