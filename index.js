@@ -5,7 +5,6 @@ const ParseServer          = require('parse-server').ParseServer;
 const ParseDashboard       = require('parse-dashboard');
 const expressLayouts       = require('express-ejs-layouts');
 const path                 = require('path');
-const OneSignalPushAdapter = require('parse-server-onesignal-push-adapter');
 const FSFilesAdapter       = require('parse-server-fs-adapter');
 const S3Adapter            = require('parse-server').S3Adapter;
 
