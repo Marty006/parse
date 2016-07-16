@@ -806,37 +806,42 @@ function destroyUser(req, res, next) {
 }
 
 function saveFacebookPicture(req, res, next) {
-    var user = req.user;
+    const user = req.user;
 
     if (!user) {
-        return res.error('Not Authorized');
+        res.error('Not Authorized');
+        return;
     }
 
-    if (user.attributes.photo.length) {
-        return res.success('Photo user')
-    }
+    user.fetch({sessionToken: user.getSessionToken()}).then(objUser=> {
 
-    let facebook = user.attributes.facebook;
+        const authData = objUser.get('authData');
 
+        if (!authData) {
+            res.error('No auth data found');
+            return;
+        }
 
-    if (!facebook) {
-        return res.error('Not logged with facebook');
-    }
+        var url = 'https://graph.facebook.com/' + authData.facebook.id + '/picture';
+        return Parse.Cloud.httpRequest({
+            url            : url,
+            followRedirects: true,
+            params         : {type: 'large'}
+        });
 
-    let profilePictureUrl = 'https://graph.facebook.com/' + facebook + '/picture';
-
-    return Parse.Cloud.httpRequest({
-        url            : profilePictureUrl,
-        followRedirects: true,
-        params         : {type: 'large'}
-    }).then(httpResponse=> {
-        let buffer = httpResponse.buffer;
-        let base64 = buffer.toString('base64');
-        return new Parse.File('image.jpg', {base64: base64}).save();
-    }).then(savedFile=> {
+    }).then(function (httpResponse) {
+        var buffer    = httpResponse.buffer;
+        var base64    = buffer.toString('base64');
+        var parseFile = new Parse.File('image.jpg', {base64: base64});
+        return parseFile.save();
+    }).then(function (savedFile) {
         user.set({'photo': savedFile});
         return user.save(null, {sessionToken: user.getSessionToken()});
-    }).then(success=>res.success(success), error=> res.error(error.message));
+    }).then(function (success) {
+        res.success(success);
+    }, function (error) {
+        res.error(error);
+    });
 }
 
 function validateUsername(req, res) {

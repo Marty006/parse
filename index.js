@@ -40,6 +40,15 @@ let ServerConfig = {
     //},
 };
 
+if (process.env.pushAndroid) {
+    ServerConfig.push = {
+        android: {
+            senderId: process.env.pushAndroid.senderId,
+            apiKey: process.env.pushAndroid.apiKey
+        }
+    };
+}
+
 // File Local
 const UPLOAD_LOCAL_PATH = process.env.UPLOAD_LOCAL_PATH;
 if (UPLOAD_LOCAL_PATH) {
@@ -77,18 +86,6 @@ if (MAILGUN_API_KEY) {
     };
 }
 
-
-// Push OneSignal
-const ONE_SIGNAL_APP_ID       = process.env.ONE_SIGNAL_APP_ID;
-const ONE_SIGNAL_REST_API_KEY = process.env.ONE_SIGNAL_REST_API_KEY;
-if (ONE_SIGNAL_APP_ID) {
-    ServerConfig.push = {
-        adapter: new OneSignalPushAdapter({
-            oneSignalApiKey: ONE_SIGNAL_APP_ID,
-            oneSignalAppId : ONE_SIGNAL_REST_API_KEY,
-        })
-    };
-}
 
 // Start Parse Server
 const api = new ParseServer(ServerConfig);

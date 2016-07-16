@@ -20,11 +20,10 @@
     "kerberos": "~0.0.x",
     "lodash": "^4.13.1",
     "method-override": "^2.3.6",
-    "parse": "~1.8.5",
+    "parse": "~1.9.0",
     "parse-dashboard": "^1.0.14",
-    "parse-server": "~2.2.15",
+    "parse-server": "~2.2.16",
     "parse-server-fs-adapter": "^1.0.0",
-    "parse-server-onesignal-push-adapter": "^1.0.0",
     "parse-server-simple-mailgun-adapter": "^1.0.0"
   },
   "scripts": {
