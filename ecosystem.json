@@ -13,19 +13,6 @@
       "watch": true,
       "merge_logs": true,
       "env": {
-        // Push Notification
-        "push" :{
-          "android": {
-            "senderId": "SENDER_ID_AKA_PROJECT_NUMBER",
-            "apiKey": "SERVER_API_KEY_FROM_GOOGLE_DEVELOPER_CONSOLE"
-          },
-          "ios":{
-            "pfx": "my-push-certificate.p12",
-            "bundleId": "com.company.myapp",
-            "production": false
-          }
-        },
-
         // Mount path for the server. Defaults to /parse.
         "PARSE_MOUNT": "/parse",
         // (required) - The connection string for your database, i.e. mongodb://user:pass@host.com/dbname.
@@ -57,7 +44,21 @@
         // (optional) - MAILGUN for send Email
         "MAILGUN_API_KEY": "key-3a05e956706a4bd579982460b96cf43a",
         "MAILGUN_DOMAIN": "https://api.mailgun.net/v3/photogramapp.com",
-        "MAILGUN_FROM_ADDRESS": "postmaster@photogramapp.com"
+        "MAILGUN_FROM_ADDRESS": "postmaster@photogramapp.com",
+
+        // Push Notification
+        "push" :{
+          "android": {
+            "apiKey": "AIzaSyCBXV7CnhusYV0172lMsvvDy1zHfr96luk",
+            "senderId": "285805785383"
+          },
+          "ios":{
+            "pfx": "my-push-certificate.p12",
+            "bundleId": "com.company.myapp",
+            "production": false
+          }
+        },
+
       }
     }
   ]
