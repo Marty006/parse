@@ -9,7 +9,7 @@ const Dashboard       = require('./class/Dashboard');
 
 
 // Instalattion
-Parse.Cloud.beforeSave(Installation.beforeSave);
+//Parse.Cloud.beforeSave(Installation.beforeSave);
 
 // Install
 Parse.Cloud.define('status', Install.status);
@@ -46,6 +46,7 @@ Parse.Cloud.define('validateEmail', User.validateEmail);
 Parse.Cloud.beforeSave('Gallery', Gallery.beforeSave);
 Parse.Cloud.afterSave('Gallery', Gallery.afterSave);
 Parse.Cloud.afterDelete('Gallery', Gallery.afterDelete);
+Parse.Cloud.define('searchGallery', Gallery.search);
 Parse.Cloud.define('feedGallery', Gallery.feed);
 Parse.Cloud.define('commentGallery', Gallery.commentGallery);
 Parse.Cloud.define('likeGallery', Gallery.likeGallery);
@@ -54,5 +55,3 @@ Parse.Cloud.define('isGalleryLiked', Gallery.isGalleryLiked);
 // GalleryComment
 Parse.Cloud.beforeSave('GalleryComment', GalleryComment.beforeSave);
 Parse.Cloud.afterSave('GalleryComment', GalleryComment.afterSave);
-
-
