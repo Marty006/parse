@@ -6,13 +6,19 @@ Read the full Parse Server guide here: https://github.com/ParsePlatform/parse-se
 
 ### For Local Development
 
-* Make sure you have at least Node 4.3. `node --version`
+* Make sure you have at least Node with NVM (recommend version 5.11.1)
+* [NVM for Linux or Mac](https://github.com/creationix/nvm)
+* [NVM for Windows](https://github.com/coreybutler/nvm-windows)
 * Clone this repo and change directory to it.
 * `npm install`
 * Install mongo locally using http://docs.mongodb.org/master/tutorial/install-mongodb-on-os-x/
 * Run `mongo` to connect to your database, just to make sure it's working. Once you see a mongo prompt, exit with Control-D
-* Run the server with: `npm start`
-* By default it will use a path of /parse for the API routes.  To change this, or use older client SDKs, run `export PARSE_MOUNT=/1` before launching the server.
+* Install [PM2](https://github.com/Unitech/pm2) :
+* `npm install -g pm2`
+* Edit **ecosystem.json** file with your server config
+* Run the server with: 
+* `pm2 start ecosystem.json`
+* By default it will use a path of /parse for the API routes.  To change this, or use older client SDKs,  edit ecosystem.json file before launching the server.
 * You now have a database named "dev" that contains your Parse data
 * Install ngrok and you can test with devices
 
